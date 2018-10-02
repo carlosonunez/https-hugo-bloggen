@@ -1,0 +1,9 @@
+# Ignore environment files
+env
+env.*
+!env.example
+
+# Ignore transient Terraform files
+.tfplan*
+.tfstate*
+*.tfstate*
