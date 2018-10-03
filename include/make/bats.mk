@@ -13,6 +13,8 @@ run_bats_%_tests:
 	type_of_tests=$$(basename $(TESTS_DIRECTORY)); \
 	>&2 echo "INFO: Running $$type_of_tests tests from $(PWD)/$(TESTS_DIRECTORY)"; \
 	docker run --tty \
+		--volume /var/run/docker.sock:/var/run/docker.sock \
+		--volume $$(which docker):/usr/bin/docker \
 		--volume $(PWD):/work \
 		--workdir /work \
 		$(BATS_DOCKER_IMAGE) $(TESTS_DIRECTORY)
