@@ -65,19 +65,13 @@ rebuild_config_toml() {
   echo '' > site/config.toml
 }
 
-build_hugo_static_site() {
-  docker run --rm \
-    --env-file "${ENVIRONMENT_FILE}" \
-    --volume $HOST_PWD/site:/site \
-    "${GENERATED_HUGO_DOCKER_IMAGE_NAME}" hugo -d /usr/share/nginx/html
-}
-
 run_hugo_from_docker_image() {
   docker run --rm \
+    --detach \
     --name "${HUGO_CONTAINER_NAME}" \
     --env-file "${ENVIRONMENT_FILE}" \
     --volume $HOST_PWD/site:/site \
-    --detach \
+    --volume $HOST_PWD/exported_site:/usr/share/nginx/html \
     --publish ${LOCAL_PORT_TO_EXPOSE_HUGO_TO}:1313 \
     "${GENERATED_HUGO_DOCKER_IMAGE_NAME}" hugo server -b "$HUGO_BASE_URL" \
       --bind=0.0.0.0 >/dev/null
@@ -106,7 +100,6 @@ if ! {
   rebuild_config_toml &&
   rebuild_hugo_theme &&
   build_docker_image_for_site &&
-  build_hugo_static_site &&
   run_hugo_from_docker_image;  
 }
 then
