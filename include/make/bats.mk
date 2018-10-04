@@ -14,6 +14,7 @@ run_bats_%_tests:
 	>&2 echo "INFO: Running $$type_of_tests tests from $(PWD)/$(TESTS_DIRECTORY)"; \
 	docker run --tty \
 		--rm \
+		--network="host" \
 		--env-file $(ENVIRONMENT_FILE) \
 		--env HOST_PWD=$(PWD) \
 		--volume $(ENVIRONMENT_FILE):/env \
