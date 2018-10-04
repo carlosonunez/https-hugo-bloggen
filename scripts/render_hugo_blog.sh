@@ -8,6 +8,7 @@ HUGO_CONTAINER_NAME=hugo-session-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head 
 HOST_PWD="${HOST_PWD:-$PWD}"
 HUGO_BASE_URL="${HUGO_BASE_URL:-http://localhost}"
 NUMBER_OF_TIMES_TO_RETRY_CONNECTING_TO_HUGO=3
+PATH_TO_TEST_POST=""
 
 display_docker_in_docker_warning() {
   if [ "$HOST_PWD" != "$PWD" ]
@@ -92,8 +93,48 @@ test_hugo() {
   for attempt in $(seq 1 $NUMBER_OF_TIMES_TO_RETRY_CONNECTING_TO_HUGO)
   do
     >&2 echo "INFO: Testing Hugo connectivity (attempt $attempt/$NUMBER_OF_TIMES_TO_RETRY_CONNECTING_TO_HUGO)"
-    curl -Lvvv "http://localhost:8080/about" 2>&1 || sleep 0.5
+    slug_to_test='about'
+    if [ ! -z "$PATH_TO_TEST_POST" ]
+    then
+      slug_to_test=$(echo "$PATH_TO_TEST_POST" | sed 's#/content/##')
+    fi
+    return_code=$(curl -o /dev/null -sLvvvvw '%{http_code}' "http://localhost:8080/$slug_to_test")
+    case "$return_code" in
+      2*)
+        return 0
+        ;;
+      4*)
+        return 1
+        ;;
+      *)
+        sleep 0.5
+        ;;
+    esac
   done
+  return 1
+}
+
+make_a_test_post_if_applicable() {
+  if [ ! -z "$PATH_TO_TEST_POST" ]
+  then
+    if [ ! -d "sites/$(dirname $PATH_TO_TEST_POST)" ]
+    then
+      mkdir -p "sites/$(dirname $PATH_TO_TEST_POST)"
+    fi
+    cat >"sites/$PATH_TO_TEST_POST" <<TEST_POST
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, \
+sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut \
+aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in \
+voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint \
+occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit \
+anim id est laborum.
+TEST_POST
+  fi
+}
+
+remove_test_post_if_applicable() {
+  rm -f "sites/$PATH_TO_TEST_POST"
 }
 
 stop_hugo() {
@@ -108,13 +149,16 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]
 then
   usage
   exit 0
+else
+  PATH_TO_TEST_POST="$1"
 fi
 
 initialize_hugo_config &&
 rebuild_hugo_theme &&
+make_a_test_post_if_applicable &&
 build_hugo_docker_image &&
 start_hugo &&
 test_hugo;
 result=$?
-stop_hugo
+stop_hugo && remove_test_post_if_applicable
 exit $result
