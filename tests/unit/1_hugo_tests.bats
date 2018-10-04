@@ -2,6 +2,12 @@
 
 @test "Ensure that our blog renders" {
   run ./scripts/render_hugo_blog.sh
-  >&2 echo "ERROR: Test failed: $output"
+  cat <<-EOF
+Test failed.
+
+Output
+======
+$output
+EOF
   [ "$status" -eq 0 ]
 }
