@@ -15,6 +15,8 @@ run_bats_%_tests:
 	docker run --tty \
 		--rm \
 		--env-file $(ENVIRONMENT_FILE) \
+		--env HOST_PWD=$(PWD) \
+		--volume $(ENVIRONMENT_FILE):/env \
 		--volume /var/run/docker.sock:/var/run/docker.sock \
 		--volume $$(which docker):/usr/bin/docker \
 		--volume $(PWD):/work \
