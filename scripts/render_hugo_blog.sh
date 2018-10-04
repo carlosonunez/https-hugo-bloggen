@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
+HUGO_VERSION="${HUGO_VERSION?Please provide a version of Hugo to install.}"
 HUGO_THEME_URL="${HUGO_THEME_URL?Please provide the URL of the Hugo theme to use.}"
 GENERATED_HUGO_DOCKER_IMAGE_NAME="${GENERATED_HUGO_DOCKER_IMAGE_NAME:-blog_carlosnunez_me}"
 LOCAL_PORT_TO_EXPOSE_HUGO_TO="${LOCAL_PORT_TO_EXPOSE_HUGO_TO:-8080}"
 ENVIRONMENT_FILE="${ENVIRONMENT_FILE:-/env}"
 HUGO_CONTAINER_NAME=hugo-session-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 8)
 HOST_PWD="${HOST_PWD:-$PWD}"
+HUGO_BASE_URL="${HUGO_BASE_URL:-http://localhost}"
+NUMBER_OF_TIMES_TO_RETRY_CONNECTING_TO_HUGO=3
 
 display_docker_in_docker_warning() {
   if [ "$HOST_PWD" != "$PWD" ]
@@ -47,45 +50,57 @@ Environment variables:
 USAGE
 }
 
-build_docker_image_for_site() {
-  docker build -t "$GENERATED_HUGO_DOCKER_IMAGE_NAME" .
+build_hugo_docker_image() {
+  >&2 echo "INFO: Building Hugo Docker image."
+  docker build --build-arg HUGO_VERSION="${HUGO_VERSION}" \
+    --quiet \
+    --tag "$GENERATED_HUGO_DOCKER_IMAGE_NAME" \
+    . >/dev/null
 }
 
 rebuild_hugo_theme() {
+  >&2 echo "INFO: Rebuilding Hugo theme."
   theme_name=$(echo "$HUGO_THEME_URL" | awk -F'/' '{print $NF}' | sed 's/.git//')
   if [ -d site/themes ]
   then
     rm -rf site/themes
   fi
   mkdir site/themes
-  git clone "$HUGO_THEME_URL" "site/themes/$theme_name"
+  git clone -q "$HUGO_THEME_URL" "site/themes/$theme_name" >/dev/null
 }
 
-rebuild_config_toml() {
+initialize_hugo_config() {
+  >&2 echo "INFO: Initializing Hugo config."
   echo '' > site/config.toml
 }
 
-run_hugo_from_docker_image() {
-  docker run --rm \
+start_hugo() {
+  >&2 echo "INFO: Starting Hugo."
+  docker run \
     --detach \
-    --name "${HUGO_CONTAINER_NAME}" \
-    --env-file "${ENVIRONMENT_FILE}" \
-    --volume $HOST_PWD/site:/site \
-    --volume $HOST_PWD/exported_site:/usr/share/nginx/html \
-    --publish ${LOCAL_PORT_TO_EXPOSE_HUGO_TO}:1313 \
-    "${GENERATED_HUGO_DOCKER_IMAGE_NAME}" hugo server -b "$HUGO_BASE_URL" \
-      --bind=0.0.0.0 >/dev/null
-  if ! curl -sL "https://localhost:$LOCAL_PORT_TO_EXPOSE_HUGO_TO"
-  then
-    >&2 echo "ERROR: Hugo didn't start."
-    return 1
-  fi
+    --name="${HUGO_CONTAINER_NAME}" \
+    --env-file="${ENVIRONMENT_FILE}" \
+    --env "HUGO_THEME=$(echo $HUGO_THEME_URL | awk -F'/' '{print $NF}' | sed 's/.git$//')" \
+    --volume "$HOST_PWD/site:/site" \
+    --publish 8080:8080 \
+    ${GENERATED_HUGO_DOCKER_IMAGE_NAME} hugo server --baseURL ${HUGO_BASE_URL} \
+      --bind 0.0.0.0 \
+      -p 8080 >/dev/null
+}
+
+test_hugo() {
+  for attempt in $(seq 1 $NUMBER_OF_TIMES_TO_RETRY_CONNECTING_TO_HUGO)
+  do
+    >&2 echo "INFO: Testing Hugo connectivity (attempt $attempt/$NUMBER_OF_TIMES_TO_RETRY_CONNECTING_TO_HUGO)"
+    curl -Lvvv "http://localhost:8080/about" 2>&1 || sleep 0.5
+  done
 }
 
 stop_hugo() {
-  if docker images -q "$HUGO_CONTAINER_NAME" >/dev/null
+  if docker ps | grep -Eq "$HUGO_CONTAINER_NAME"
   then
-      docker rm "$HUGO_CONTAINER_NAME" -f
+    >&2 echo "INFO: Stopping Hugo"
+    docker rm "$HUGO_CONTAINER_NAME" -f >/dev/null
   fi
 }
 
@@ -95,16 +110,11 @@ then
   exit 0
 fi
 
-result=0
-if ! {
-  rebuild_config_toml &&
-  rebuild_hugo_theme &&
-  build_docker_image_for_site &&
-  run_hugo_from_docker_image;  
-}
-then
-  >&2 echo "ERROR: Failed to start Hugo; see logs above."
-  result=1
-fi
+initialize_hugo_config &&
+rebuild_hugo_theme &&
+build_hugo_docker_image &&
+start_hugo &&
+test_hugo;
+result=$?
 stop_hugo
-exit "$result"
+exit $result
