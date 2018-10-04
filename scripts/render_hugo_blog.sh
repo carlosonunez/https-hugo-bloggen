@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
-ENVIRONMENT_FILE="${ENVIRONMENT_FILE?Please provide a dotenv.}"
 HUGO_THEME_URL="${HUGO_THEME_URL?Please provide the URL of the Hugo theme to use.}"
 GENERATED_HUGO_DOCKER_IMAGE_NAME="${GENERATED_HUGO_DOCKER_IMAGE_NAME:-blog_carlosnunez_me}"
 LOCAL_PORT_TO_EXPOSE_HUGO_TO="${LOCAL_PORT_TO_EXPOSE_HUGO_TO:-8080}"
+ENVIRONMENT_FILE="${ENVIRONMENT_FILE:-/env}"
+HUGO_CONTAINER_NAME=hugo-session-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 8)
+HOST_PWD="${HOST_PWD:-$PWD}"
+
+display_docker_in_docker_warning() {
+  if [ "$HOST_PWD" != "$PWD" ]
+  then
+    >&2 echo "WARN: A HOST_PWD was provided. This script might be running in a \
+  nested Docker container."
+  fi
+}
 
 usage() {
   cat <<USAGE
@@ -29,13 +39,16 @@ Environment variables:
                                       variables instead.
                                       (Currently: $ENVIRONMENT_FILE)
 
+  HOST_PWD                            The path to the container's working directory
+                                      on the *host*. This is needed to ensure
+                                      that volume mounts work correctly when
+                                      this script is run within a Docker container.
+
 USAGE
 }
 
 build_docker_image_for_site() {
-  docker build -t "$GENERATED_HUGO_DOCKER_IMAGE_NAME" . -f-<<DOCKER_IMAGE
-FROM publysher/hugo
-DOCKER_IMAGE
+  docker build -t "$GENERATED_HUGO_DOCKER_IMAGE_NAME" .
 }
 
 rebuild_hugo_theme() {
@@ -52,15 +65,33 @@ rebuild_config_toml() {
   echo '' > site/config.toml
 }
 
+build_hugo_static_site() {
+  docker run --rm \
+    --env-file "${ENVIRONMENT_FILE}" \
+    --volume $HOST_PWD/site:/site \
+    "${GENERATED_HUGO_DOCKER_IMAGE_NAME}" hugo -d /usr/share/nginx/html
+}
+
 run_hugo_from_docker_image() {
   docker run --rm \
+    --name "${HUGO_CONTAINER_NAME}" \
+    --env-file "${ENVIRONMENT_FILE}" \
+    --volume $HOST_PWD/site:/site \
     --detach \
     --publish ${LOCAL_PORT_TO_EXPOSE_HUGO_TO}:1313 \
-    "${GENERATED_HUGO_DOCKER_IMAGE_NAME}" >/dev/null
-  if ! curl -L https://localhost:$(LOCAL_PORT_TO_EXPOSE_HUGO_TO)
+    "${GENERATED_HUGO_DOCKER_IMAGE_NAME}" hugo server -b "$HUGO_BASE_URL" \
+      --bind=0.0.0.0 >/dev/null
+  if ! curl -sL "https://localhost:$LOCAL_PORT_TO_EXPOSE_HUGO_TO"
   then
     >&2 echo "ERROR: Hugo didn't start."
     return 1
+  fi
+}
+
+stop_hugo() {
+  if docker images -q "$HUGO_CONTAINER_NAME" >/dev/null
+  then
+      docker rm "$HUGO_CONTAINER_NAME" -f
   fi
 }
 
@@ -70,15 +101,17 @@ then
   exit 0
 fi
 
+result=0
 if ! {
   rebuild_config_toml &&
   rebuild_hugo_theme &&
-  build_docker_image_for_site && 
+  build_docker_image_for_site &&
+  build_hugo_static_site &&
   run_hugo_from_docker_image;  
 }
 then
   >&2 echo "ERROR: Failed to start Hugo; see logs above."
-  exit 1
+  result=1
 fi
-
-exit 0
+stop_hugo
+exit "$result"
