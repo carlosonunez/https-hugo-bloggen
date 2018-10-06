@@ -1,4 +1,23 @@
 #!/usr/bin/env make
+define BATS_USAGE
+/include/make/bats.mk
+Targets for running Bats tests.
+
+Targets:
+
+  run_bats_(TEST_TYPE)_tests     Runs BATS tests within a given folder called
+	                               TEST_TYPE.
+																 (e.g. 'unit', 'integration')
+
+Environment Variables
+
+  BATS_DOCKER_IMAGE              The Docker image to use; must contain bats.
+endef
+export BATS_DOCKER_IMAGE
+
+.PHONY: bats_usage
+bats_usage:
+	@echo "$$BATS_DOCKER_IMAGE"
 
 .PHONY: run_bats_%_tests
 run_bats_%_tests: \
@@ -12,14 +31,6 @@ run_bats_%_tests:
 	fi; \
 	type_of_tests=$$(basename $(TESTS_DIRECTORY)); \
 	>&2 echo "INFO: Running $$type_of_tests tests from $(PWD)/$(TESTS_DIRECTORY)"; \
-	docker run --tty \
-		--rm \
-		--network="host" \
-		--env-file $(ENVIRONMENT_FILE) \
-		--env HOST_PWD=$(PWD) \
-		--volume $(ENVIRONMENT_FILE):/env \
-		--volume /var/run/docker.sock:/var/run/docker.sock \
-		--volume $$(which docker):/usr/bin/docker \
-		--volume $(PWD):/work \
-		--workdir /work \
-		$(BATS_DOCKER_IMAGE) $(TESTS_DIRECTORY)
+	$(MAKE) docker_run \
+		DOCKER_IMAGE=$(BATS_DOCKER_IMAGE) \
+		DOCKER_IMAGE_OPTIONS=$(TESTS_DIRECTORY)
