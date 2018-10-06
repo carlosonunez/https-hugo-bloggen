@@ -4,7 +4,7 @@ HUGO_THEME="${HUGO_THEME?Please provide a theme to use.}"
 GENERATED_HUGO_DOCKER_IMAGE_NAME="${GENERATED_HUGO_DOCKER_IMAGE_NAME:-blog_carlosnunez_me}"
 LOCAL_PORT_TO_EXPOSE_HUGO_TO="${LOCAL_PORT_TO_EXPOSE_HUGO_TO:-8080}"
 ENVIRONMENT_FILE="${ENVIRONMENT_FILE:-/env}"
-HUGO_CONTAINER_NAME=hugo-session-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 8)
+HUGO_CONTAINER_NAME=hugo-session-$(< /dev/urandom tr -dc 'a-zA-Z0-9' | head -c 8)
 HOST_PWD="${HOST_PWD:-$PWD}"
 HUGO_BASE_URL="${HUGO_BASE_URL:-http://localhost}"
 KEEP_HUGO_SERVER_ALIVE_FOR_TESTING="${KEEP_HUGO_SERVER_ALIVE_FOR_TESTING:-false}"
@@ -21,7 +21,7 @@ display_docker_in_docker_warning() {
 
 usage() {
   cat <<USAGE
-$(basename $0)
+$(basename "$0")
 Locally renders a Hugo site in preparation for hosting on AWS S3 as a \
 static website.
 
@@ -72,7 +72,7 @@ start_hugo() {
       --env-file="${ENVIRONMENT_FILE}" \
       --volume "$HOST_PWD/site:/site" \
       --publish 8080:8080 \
-      ${GENERATED_HUGO_DOCKER_IMAGE_NAME} hugo server --baseURL ${HUGO_BASE_URL} \
+      "${GENERATED_HUGO_DOCKER_IMAGE_NAME}" hugo server --baseURL "${HUGO_BASE_URL}" \
         --bind 0.0.0.0 \
         -p 8080 >/dev/null
   else
@@ -81,7 +81,7 @@ start_hugo() {
       --env-file="${ENVIRONMENT_FILE}" \
       --volume "$HOST_PWD/site:/site" \
       --publish 8080:8080 \
-      ${GENERATED_HUGO_DOCKER_IMAGE_NAME} hugo server --baseURL ${HUGO_BASE_URL} \
+      "${GENERATED_HUGO_DOCKER_IMAGE_NAME}" hugo server --baseURL "${HUGO_BASE_URL}" \
         --bind 0.0.0.0 \
         -p 8080
   fi
@@ -91,7 +91,7 @@ test_hugo() {
   for attempt in $(seq 1 $NUMBER_OF_TIMES_TO_RETRY_CONNECTING_TO_HUGO)
   do
     slug_to_test='about'
-    if [ ! -z "$POST_NAME" ]
+    if [ -n "$POST_NAME" ]
     then
       slug_to_test="post/$POST_NAME"
     fi
@@ -114,7 +114,7 @@ test_hugo() {
 }
 
 make_a_test_post_if_applicable() {
-  if [ ! -z "$POST_NAME" ]
+  if [ -n "$POST_NAME" ]
   then
     if [ ! -d 'site/content/post' ]
     then
