@@ -106,7 +106,7 @@ test_hugo() {
         return 1
         ;;
       *)
-        sleep 0.5
+        sleep 1
         ;;
     esac
   done
@@ -122,6 +122,10 @@ make_a_test_post_if_applicable() {
     fi
     cat >"site/content/post/${POST_NAME}.md" <<TEST_POST
 ---
+title: "My new post"
+date: $(date +%m-%d-%Y)
+---
+
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, \
 sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \
 Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut \
