@@ -1,3 +1,6 @@
+# Ignore OS X artefacts.
+.DS_Store
+
 # Ignore environment files
 env
 env.*
@@ -12,4 +15,6 @@ env.*
 # (config.toml is auto-generated when the blog is deployed.)
 !site
 site/*
-!site/content
+!site/themes/
+!site/content/
+!site/layouts/
