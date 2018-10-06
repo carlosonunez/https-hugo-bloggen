@@ -20,6 +20,9 @@ Required Environment Variables:
 
 Optional Environment variables:
 
+  PWD_TO_USE               The directory to set the container's PWD as.
+	                         (Default: $(PWD_TO_USE))
+
   DOCKER_PWD               The directory to mount the host's current working
                            directory into.
                           (Default: $(DOCKER_PWD))
@@ -39,6 +42,7 @@ Notes:
 endef
 export DOCKER_USAGE
 DOCKER_PWD ?= /work
+PWD_TO_USE ?= $(PWD)
 
 docker_usage:
 	@echo "$$DOCKER_USAGE"
@@ -56,6 +60,6 @@ docker_run:
 		--volume $(ENVIRONMENT_FILE):/env \
 		--volume /var/run/docker.sock:/var/run/docker.sock \
 		--volume $$(which docker):/usr/bin/docker \
-		--volume $(PWD):$(DOCKER_PWD) \
+		--volume $(PWD_TO_USE):$(DOCKER_PWD) \
 		--workdir $(DOCKER_PWD) \
 		$(DOCKER_IMAGE) $(DOCKER_IMAGE_OPTIONS)
