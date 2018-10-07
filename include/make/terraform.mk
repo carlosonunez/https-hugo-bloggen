@@ -51,7 +51,7 @@ INFRASTRUCTURE_DIRECTORY ?= '$(PWD)/infrastructure/$(INFRASTRUCTURE_PROVIDER)'
 terraform_generate_variables:
 	env | \
 		grep -E '^TF_VAR_' | \
-		sed 's/^TF_VAR_\(.*\)=\(.*\)/\1: "\2"/' > infrastructure/$(INFRASTRUCTURE_PROVIDER)/terraform.tfvars
+		sed 's/^TF_VAR_\(.*\)=\(.*\)/\1 = "\2"/' > infrastructure/$(INFRASTRUCTURE_PROVIDER)/terraform.tfvars
 
 terraform_usage:
 	@echo "$$TERRAFORM_USAGE"

@@ -1,5 +1,6 @@
 SHELL := /usr/bin/env bash
 include include/make/*.mk
+include include/make/**/*.mk
 
 ifdef VERBOSE
 $(info Verbose mode is on. Make will show all steps.)
