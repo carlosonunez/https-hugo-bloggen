@@ -14,7 +14,6 @@ endef
 export PROVIDER_AWS_USAGE
 
 ifeq ($(INFRASTRUCTURE_PROVIDER),aws)
-$(info Check)
 ifndef AWS_ACCESS_KEY_ID
 $(error Please provide an AWS access key to use)
 endif
