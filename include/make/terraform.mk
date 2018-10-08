@@ -49,6 +49,10 @@ Notes:
 
 - Every provider Make include *must* define a TERRAFORM_$${PROVIDER}_STATE_BACKEND_CONFIGURATION
   Make variable containing options for that provider's backend.
+
+- This include writes a file called .terraform_is_initialized after
+  successfully initializing Terraform. Delete this file if you need to refresh
+	Terraform modules or otherwise re-initialize Terraform.
 endef
 export TERRAFORM_USAGE
 
@@ -68,8 +72,9 @@ $(error This Make include uses remote backends for managing Terraform state \
 endif
 export $(BACKEND_PROVIDER)_TERRAFORM_STATE_BACKEND_CONFIGURATION
 
-INFRASTRUCTURE_DIRECTORY ?= '$(PWD)/infrastructure/$(INFRASTRUCTURE_PROVIDER)'
+INFRASTRUCTURE_DIRECTORY ?= $(PWD)/infrastructure/$(INFRASTRUCTURE_PROVIDER)
 BACKEND_TFVARS_LOCATION := $(INFRASTRUCTURE_DIRECTORY)/backend.tfvars
+BACKEND_TFVARS_LOCATION_SHORTNAME := $(shell basename $(BACKEND_TFVARS_LOCATION))
 TERRAFORM_TFVARS_LOCATION := $(INFRASTRUCTURE_DIRECTORY)/terraform.tfvars
 
 .PHONY: \
@@ -99,6 +104,8 @@ terraform_init:
 	then \
 		$(MAKE) terraform_generate_backend && \
 		$(MAKE) terraform_generate_variables && \
+		$(MAKE) terraform_run TERRAFORM_ACTION=init \
+			TERRAFORM_ACTION_OPTIONS=-backend-config="$(BACKEND_TFVARS_LOCATION_SHORTNAME)" && \
 		touch .terraform_is_initialized; \
 	fi
 
