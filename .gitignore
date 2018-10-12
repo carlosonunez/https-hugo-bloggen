@@ -11,6 +11,7 @@ env.*
 .tfstate*
 *.tfstate*
 terraform.tfvars
+backend.tfvars
 !terraform.tfvars.example
 .terraform
 .terraform_is_initialized
