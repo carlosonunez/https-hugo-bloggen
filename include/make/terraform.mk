@@ -8,7 +8,6 @@ terraform_apply: Applies a Terraform plan.
 terraform_destroy: Destroys a Terraform plan.
 terraform_output: Displays any defined "outputs".
 endef
-
 define TERRAFORM_REQUIRED_ENV_VARS
 TERRAFORM_DOCKER_IMAGE: The Docker image to use for running Terraform.
 INFRASTRUCTURE_PROVIDER: The provider to provision infrastructure onto. \
@@ -29,6 +28,8 @@ endif
 INFRASTRUCTURE_DIRECTORY ?= $(PWD)/infrastructure/$(INFRASTRUCTURE_PROVIDER)
 TERRAFORM_BACKEND_PATH := $(INFRASTRUCTURE_DIRECTORY)/backend.tfvars
 TERRAFORM_TFVARS_PATH := $(INFRASTRUCTURE_DIRECTORY)/terraform.tfvars
+TERRAFORM_BACKEND_PATH_RELATIVE_TO_DOCKER := backend.tfvars
+TERRAFORM_TFVARS_PATH_RELATIVE_TO_DOCKER := terraform.tfvars
 
 BACKEND_PROVIDER ?= $(shell echo $(INFRASTRUCTURE_PROVIDER) | tr '[:lower:]' '[:upper:]')
 ifndef TERRAFORM_BACKEND_CONFIGURATION_$(BACKEND_PROVIDER)
@@ -57,7 +58,7 @@ export TERRAFORM_BACKEND_FILE
 terraform_generate_variables:
 	env | \
 		grep -E '^TF_VAR_' | sed 's/^TF_VAR_\(.*\)=\(.*\)/\1 = "\2"/' > $(TERRAFORM_TFVARS_PATH); \
-	echo "$$TERRAFORM_FILE" > $(TERRAFORM_BACKEND_PATH); \
+	echo "$$TERRAFORM_BACKEND_FILE" > $(TERRAFORM_BACKEND_PATH); \
 
 terraform_validate:
 	$(MAKE) terraform_init && $(MAKE) terraform_run TERRAFORM_ACTION=validate
@@ -65,9 +66,9 @@ terraform_validate:
 terraform_init:
 	if [ ! -f .terraform_is_initialized ]; \
 	then \
-		$(MAKE) terraform_run TERRAFORM_ACTION=init \
-			TERRAFORM_ACTION_OPTIONS="-backend-config=$(TERRAFORM_BACKEND_PATH)" && \
 		$(MAKE) terraform_generate_variables && \
+		$(MAKE) terraform_run TERRAFORM_ACTION=init \
+			TERRAFORM_ACTION_OPTIONS="-backend-config='$(TERRAFORM_BACKEND_PATH_RELATIVE_TO_DOCKER)'" && \
 		touch .terraform_is_initialized; \
 	fi
 
@@ -84,12 +85,15 @@ terraform_run:
 		DOCKER_IMAGE_OPTIONS="$(TERRAFORM_CLI_OPTIONS) $(TERRAFORM_ACTION) $(TERRAFORM_ACTION_OPTIONS)"
 
 terraform_plan:
+	$(MAKE) terraform_init && \
 	$(MAKE) terraform_run TERRAFORM_ACTION=plan
 
 terraform_apply:
-	$(MAKE) terraform_run TERRFORM_ACTION=apply \
+	$(MAKE) terraform_init && \
+	$(MAKE) terraform_run TERRAFORM_ACTION=apply \
 		TERRAFORM_ACTION_OPTIONS="-auto-approve $(TERRAFORM_ACTION_OPTIONS)"
 
 terraform_destroy:
+	$(MAKE) terraform_init && \
 	$(MAKE) terraform_run TERRAFORM_ACTION=destroy \
 		TERRAFORM_ACTION_OPTIONS="-auto-approve $(TERRAFORM_ACTION_OPTIONS)"
