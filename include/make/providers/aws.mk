@@ -25,9 +25,9 @@ endif
 # Use the S3 backend
 define TERRAFORM_BACKEND_CONFIGURATION_AWS
 backend "s3" {
-	bucket = $(TERRAFORM_STATE_S3_BUCKET_NAME)
-	key = $(TERRAFORM_STATE_S3_BUCKET_KEY)
-	region = $(AWS_REGION)
+	bucket = "$(TERRAFORM_STATE_S3_BUCKET_NAME)"
+	key = "$(TERRAFORM_STATE_S3_BUCKET_KEY)"
+	region = "$(AWS_REGION)"
 }
 endef
 
