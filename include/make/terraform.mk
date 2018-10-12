@@ -9,6 +9,7 @@ terraform_destroy: Destroys a Terraform plan.
 terraform_output: Displays any defined "outputs".
 endef
 define TERRAFORM_REQUIRED_ENV_VARS
+ENVIRONMENT_NAME: The name of the environment being provisioned.
 TERRAFORM_DOCKER_IMAGE: The Docker image to use for running Terraform.
 INFRASTRUCTURE_PROVIDER: The provider to provision infrastructure onto. \
 	(A subdirectory for it must exist within \$$INFRASTRUCTURE_DIRECTORY.)
@@ -23,6 +24,9 @@ endef
 
 ifndef INFRASTRUCTURE_PROVIDER
 $(error You need to define an INFRASTRUCTURE_PROVIDER at include/make/providers before using this include.)
+endif
+ifndef ENVIRONMENT_NAME
+$(error You need to define the environment being provisioned.)
 endif
 
 INFRASTRUCTURE_DIRECTORY ?= $(PWD)/infrastructure/$(INFRASTRUCTURE_PROVIDER)
@@ -58,6 +62,7 @@ export TERRAFORM_BACKEND_FILE
 terraform_generate_variables:
 	env | \
 		grep -E '^TF_VAR_' | sed 's/^TF_VAR_\(.*\)=\(.*\)/\1 = "\2"/' > $(TERRAFORM_TFVARS_PATH); \
+	echo "environment_name = \"$(ENVIRONMENT_NAME)\"" >> $(TERRAFORM_TFVARS_PATH); \
 	echo "$$TERRAFORM_BACKEND_FILE" > $(TERRAFORM_BACKEND_PATH); \
 
 terraform_validate:
