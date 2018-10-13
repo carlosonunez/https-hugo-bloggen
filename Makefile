@@ -21,10 +21,10 @@ lint: lint_shell lint_terraform
 
 lint_shell: run_shellcheck
 
-lint_terraform: terraform_validate
+lint_terraform: terraform_init terraform_validate
 
-unit: run_bats_unit_tests
-integration: run_bats_integration_tests
+unit: terraform_init run_bats_unit_tests
+integration: terraform_init run_bats_integration_tests
 
 .PHONY: deploy deploy_infrastructure deploy_site
 
