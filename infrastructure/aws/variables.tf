@@ -30,3 +30,12 @@ They must be within the CIDR declared by vpc_cidr, and they must equal
 the number of AZs requested by 'number_of_azs'
 EOF
 }
+
+variable "public_vpc_subnet_cidrs" {
+  type = "list"
+  description = <<EOF
+CIDRs to use for public subnets created within the VPC.
+They must be within the CIDR declared by vpc_cidr, and they must equal
+the number of AZs requested by 'number_of_azs'
+EOF
+}

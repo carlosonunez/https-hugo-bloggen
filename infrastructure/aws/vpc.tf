@@ -6,7 +6,7 @@ module "vpc" {
   enable_dns_hostnames = true
   enable_dns_support = true
   enable_nat_gateway = true
-  one_nat_gateway_per_az = true
   name = "vpc"
+  public_subnets = "${var.public_vpc_subnet_cidrs}"
   private_subnets = "${var.private_vpc_subnet_cidrs}"
 }
