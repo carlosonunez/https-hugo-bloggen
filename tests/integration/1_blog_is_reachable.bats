@@ -9,6 +9,12 @@ $output
 EOF
 }
 
+teardown(){
+  if [ "$BATS_TEST_NUMBER" -eq ${#BATS_TEST_NAMES[@]} ]; then
+    make terraform_destroy
+  fi
+}
+
 @test "Ensure that our blog is visible online" {
   run make deploy_infrastructure
   show_additional_error_info
