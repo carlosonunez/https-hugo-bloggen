@@ -12,6 +12,7 @@ data "aws_iam_policy_document" "make_website_world_readable" {
     effect = "Allow"
     actions = [ "s3:GetObject" ]
     resources = [ "arn:aws:s3:::${var.s3_bucket_name}/*" ]
+  }
 }
 
 resource "aws_s3_bucket" "blog" {
