@@ -13,14 +13,3 @@ EOF
   show_additional_error_info
   [ "$status" -eq 0 ]
 }
-
-@test "Ensure that a VPC was provisioned" {
-  run make deploy_infrastructure
-  show_additional_error_info
-  [ "$status" -eq 0 ]
-
-  make terraform_output VARIABLE_TO_GET=vpc_id
-  show_additional_error_info
-  [ "$status" -eq 0 ]
-  [ "$output" != "" ]
-}
