@@ -40,14 +40,22 @@ docker_run: \
 	check_environment_variable_DOCKER_IMAGE_OPTIONS
 
 docker_run:
+	if [ ! -z "$(HOST_PWD)" ]; \
+	then \
+		host_pwd="$(HOST_PWD)"; \
+		pwd_to_use=$$(echo $(PWD_TO_USE) | sed "s#$(DOCKER_PWD)#$(HOST_PWD)#"); \
+	else \
+		host_pwd="$(PWD)"; \
+		pwd_to_use="$(PWD_TO_USE)"; \
+	fi; \
 	docker run --tty \
 		--rm \
 		--network="host" \
 		--env-file $(ENVIRONMENT_FILE) \
-		--env HOST_PWD=$(PWD) \
+		--env HOST_PWD="$$host_pwd" \
 		--volume $(ENVIRONMENT_FILE):/env \
 		--volume /var/run/docker.sock:/var/run/docker.sock \
 		--volume $$(which docker):/usr/bin/docker \
-		--volume $(PWD_TO_USE):$(DOCKER_PWD) \
+		--volume $$pwd_to_use:$(DOCKER_PWD) \
 		--workdir $(DOCKER_PWD) \
 		$(DOCKER_IMAGE) $(DOCKER_IMAGE_OPTIONS)
