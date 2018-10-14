@@ -31,7 +31,9 @@ backend "s3" {
 }
 endef
 
-# Terraform exports.
-export TF_VAR_aws_access_key = $(AWS_ACCESS_KEY_ID)
-export TF_VAR_aws_secret_key = $(AWS_SECRET_ACCESS_KEY)
-export TF_VAR_aws_region = $(AWS_REGION)
+define TERRAFORM_EXTRA_VARS_AWS
+aws_access_key = "$(AWS_ACCESS_KEY_ID)"
+aws_secret_access_key = "$(AWS_SECRET_ACCESS_KEY)"
+aws_region = "$(AWS_REGION)"
+hugo_base_url = "$(HUGO_BASE_URL)"
+endef
