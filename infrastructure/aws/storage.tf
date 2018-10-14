@@ -4,6 +4,7 @@ locals {
 
 resource "random_string" "bucket_prefix" {
   length = "${var.s3_bucket_name_prefix_length}"
+  special = false
 }
 
 data "aws_iam_policy_document" "make_website_world_readable" {
