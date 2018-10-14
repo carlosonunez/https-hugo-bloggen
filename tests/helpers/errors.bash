@@ -6,5 +6,8 @@ Test failed.
 Output
 ======
 $output
+
+NOTE: You might need to scroll up to see the full error log.
+
 EOF
 }
