@@ -128,9 +128,9 @@ terraform_plan:
 terraform_apply:
 	$(MAKE) terraform_init && \
 	$(MAKE) terraform_run TERRAFORM_ACTION=apply \
-		TERRAFORM_ACTION_OPTIONS="-auto-approve $(TERRAFORM_ACTION_OPTIONS)"
+		TERRAFORM_ACTION_OPTIONS="-input=false -auto-approve $(TERRAFORM_ACTION_OPTIONS)"
 
 terraform_destroy:
 	$(MAKE) terraform_init && \
 	$(MAKE) terraform_run TERRAFORM_ACTION=destroy \
-		TERRAFORM_ACTION_OPTIONS="-auto-approve $(TERRAFORM_ACTION_OPTIONS)"
+		TERRAFORM_ACTION_OPTIONS="-input=false -auto-approve $(TERRAFORM_ACTION_OPTIONS)"
