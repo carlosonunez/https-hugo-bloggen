@@ -70,10 +70,11 @@ DEFAULT_YEAR := $(shell date +%Y)
 		[ ! -z "$($(USAGE_TO_PRINT)_SUMMARY)" ]; \
 	}; \
 	print_notes() { \
-		if [ "$($(USAGE_TO_PRINT)_NOTES)" != "" ]; \
+		notes="$(subst $(newline),\n,$($(USAGE_TO_PRINT)_NOTES))\n\n"; \
+		if [ "$$notes" != "" ]; \
 		then \
 			printf -- "$(BOLD_WHITE)NOTES$(RESET_COLORS)\n\n"; \
-			printf -- "$($(USAGE_TO_PRINT)_NOTES)\n\n"; \
+			printf -- "$$notes"; \
 		fi; \
 	}; \
 	print_summary() { \
