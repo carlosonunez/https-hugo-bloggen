@@ -22,9 +22,36 @@ INFRASTRUCTURE_DIRECTORY: Directory containing Terraform code. \
 	(Default: $(INFRASTRUCTURE_DIRECTORY))
 endef
 
+define TERRAFORM_NOTES
+- To reduce wait time during tests, a file called .terraform_is_initialized \
+	is written to the current working directory to prevent 'terraform init' \
+	from running multiple times. Remove this file to force re-initialization. \
+	Here are some examples of when a reinitialization might be needed:
+
+  * You have added variables to your environment dotfile or TERRAFORM_EXTRA_VARS.
+  * You are using a new module in your Terraform configuration.
+  * You need to update a module.
+
+- You can specify a custom provider for storing Terraform remote state by \
+  defining a Make variable called TERRAFORM_BACKEND_CONFIGURATION_(PROVIDER_NAME) \
+  in include/make/providers/(PROVIDER_NAME).mk.
+
+- terraform.tfvars is automatically generated from any TF_VAR_ environment \
+  variables that you define in your environment dotfile (see env.example \
+  for an example of this). If your Terraform provider requires additional \
+  variables that are difficult/repetitive to expose in that dotfile, \
+  create TERRAFORM_EXTRA_VARS_(PROVIDER_NAME) in include/make/providers/(PROVIDER_NAME).mk.
+endef
+define newline
+
+
+endef
+
 ifndef INFRASTRUCTURE_PROVIDER
 $(error You need to define an INFRASTRUCTURE_PROVIDER at include/make/providers before using this include.)
 endif
+INFRASTRUCTURE_PROVIDER_UPCASE := $(shell echo $(INFRASTRUCTURE_PROVIDER) | \
+	tr '[:lower:]' '[:upper:]')
 ifndef ENVIRONMENT
 $(error You need to define the environment being provisioned.)
 endif
@@ -48,6 +75,7 @@ terraform {
 }
 endef
 export TERRAFORM_BACKEND_FILE
+export TERRAFORM_EXTRA_VARS
 
 .PHONY: \
 	terraform_validate \
@@ -59,9 +87,12 @@ export TERRAFORM_BACKEND_FILE
 	terraform_plan \
 	terraform_destroy
 
+export TERRAFORM_EXTRA_VARS_$(INFRASTRUCTURE_PROVIDER_UPCASE)
+
 terraform_generate_variables:
-	env | \
-		grep -E '^TF_VAR_' | sed 's/^TF_VAR_\(.*\)=\(.*\)/\1 = "\2"/' > $(TERRAFORM_TFVARS_PATH); \
+	env | grep -E '^TF_VAR_' |  sed 's/^TF_VAR_\(.*\)=\(.*\)/\1 = "\2"/' > $(TERRAFORM_TFVARS_PATH); \
+	echo "$$TERRAFORM_EXTRA_VARS_$(INFRASTRUCTURE_PROVIDER_UPCASE)" >> $(TERRAFORM_TFVARS_PATH); \
+	# Unquote lists, as that isn't valid HCL
 	sed -i '' 's/= "\(\[.*\]\)"/= \1/' $(TERRAFORM_TFVARS_PATH); \
 	echo "environment_name = \"$(ENVIRONMENT)\"" >> $(TERRAFORM_TFVARS_PATH); \
 	echo "$$TERRAFORM_BACKEND_FILE" > $(TERRAFORM_BACKEND_PATH); \
