@@ -92,7 +92,7 @@ terraform_run:
 
 terraform_plan:
 	$(MAKE) terraform_init && \
-	$(MAKE) terraform_run TERRAFORM_ACTION=plan
+	$(MAKE) terraform_run TERRAFORM_ACTION=plan TERRAFORM_ACTION_OPTIONS=-input=false
 
 terraform_apply:
 	$(MAKE) terraform_init && \
