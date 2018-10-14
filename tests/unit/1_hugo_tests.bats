@@ -1,13 +1,5 @@
 #!/usr/bin/env bats
-show_additional_error_info() {
-  cat <<-EOF
-Test failed.
-
-Output
-======
-$output
-EOF
-}
+load ../helpers/errors
 
 @test "Ensure that our blog renders locally" {
   run ./scripts/render_hugo_blog.sh
