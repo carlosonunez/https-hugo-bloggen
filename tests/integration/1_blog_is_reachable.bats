@@ -13,7 +13,9 @@ teardown(){
   [ "$status" -eq 0 ]
 
   blog_uri=$(make terraform_output VARIABLE_TO_GET=route53_dns_address)
-  run curl --location -vvv "https://blog_uri"
+  [ "$blog_uri" != "" ]
+
+  run curl --location -vvv "$blog_uri"
   show_additional_error_info
   [ "$status" -eq 0 ]
 }
