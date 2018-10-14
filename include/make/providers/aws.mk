@@ -33,7 +33,9 @@ endef
 
 define TERRAFORM_EXTRA_VARS_AWS
 aws_access_key = "$(AWS_ACCESS_KEY_ID)"
-aws_secret_access_key = "$(AWS_SECRET_ACCESS_KEY)"
+aws_secret_key = "$(AWS_SECRET_ACCESS_KEY)"
 aws_region = "$(AWS_REGION)"
 hugo_base_url = "$(HUGO_BASE_URL)"
+hugo_url_scheme = "$(shell echo $(HUGO_BASE_URL) | sed -E 's#(https?).*#\1#')"
+s3_bucket_name = "$(shell echo $(HUGO_BASE_URL) | sed -E 's#https?://##')"
 endef

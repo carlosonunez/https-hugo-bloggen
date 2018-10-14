@@ -1,5 +1,5 @@
 locals {
-  s3_bucket_name = "${var.hugo_base_url}"
+  s3_bucket_name = "${var.s3_bucket_name}"
 }
 
 data "aws_iam_policy_document" "make_website_world_readable" {
@@ -7,6 +7,10 @@ data "aws_iam_policy_document" "make_website_world_readable" {
     sid = "PublicReadGetObject"
     effect = "Allow"
     actions = [ "s3:GetObject" ]
+    principals {
+      type = "*"
+      identifiers = [ "*" ]
+    }
     resources = [ "arn:aws:s3:::${local.s3_bucket_name}/*" ]
   }
 }
