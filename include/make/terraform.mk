@@ -134,3 +134,10 @@ terraform_destroy:
 	$(MAKE) terraform_init && \
 	$(MAKE) terraform_run TERRAFORM_ACTION=destroy \
 		TERRAFORM_ACTION_OPTIONS="-input=false -auto-approve $(TERRAFORM_ACTION_OPTIONS)"
+
+terraform_output:
+	$(MAKE) check_environment_variable_VARIABLE_TO_GET && \
+	$(MAKE) terraform_init && \
+	$(MAKE) terraform_run TERRAFORM_ACTION=output \
+		TERRAFORM_ACTION_OPTIONS="-json $(VARIABLE_TO_GET)"
+		
