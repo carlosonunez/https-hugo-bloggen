@@ -38,13 +38,7 @@ endif
 include $(ENVIRONMENT_FILE)
 export $(shell sed 's/=.*//' $(ENVIRONMENT_FILE))
 
-.PHONY: check_environment_variable_% create_environment_%
-create_environment_%:
-	environment_to_create=$$(echo $@ | sed 's/create_environment_//');  \
-	cat $(EXAMPLE_ENVIRONMENT_FILE) | \
-		grep -Ev '^#' | \
-		grep -Ev '^$$' | \
-		sed 's/=change me/=/' > "$(PWD)/env.$$environment_to_create"
+.PHONY: check_environment_variable_%
 
 check_environment_variable_%:
 	environment_variable_to_check=$$(echo $@ | sed 's/^check_environment_variable_//'); \
