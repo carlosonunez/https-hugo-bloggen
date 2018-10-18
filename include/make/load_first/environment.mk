@@ -32,7 +32,8 @@ $(error Missing example environment file: $(EXAMPLE_ENVIRONMENT_FILE))
 endif
 
 ifeq (,$(wildcard $(ENVIRONMENT_FILE)))
-$(error Missing environment file: $(ENVIRONMENT_FILE))
+$(error Missing environment file: $(ENVIRONMENT_FILE). \
+	To create one, run this: cp $(EXAMPLE_ENVIRONMENT_FILE) $(ENVIRONMENT_FILE))
 endif
 
 include $(ENVIRONMENT_FILE)
