@@ -44,9 +44,6 @@ variable "hugo_base_url" {
   description = "The URL that Hugo is hosted from."
 }
 
-variable "s3_bucket_name" {
-  description = <<EOF
-The name of the S3 bucket. Because this bucket will be serving up a website,
-this will need to map to the blog's domain name.
-EOF
+variable "route53_domain_name" {
+  description = "The domain name corresponding to the Route53 hosted zone to use."
 }
