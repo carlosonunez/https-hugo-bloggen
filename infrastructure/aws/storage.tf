@@ -1,7 +1,3 @@
-locals {
-  s3_bucket_name = "${var.s3_bucket_name}"
-}
-
 data "aws_iam_policy_document" "make_website_world_readable" {
   statement {
     sid = "PublicReadGetObject"

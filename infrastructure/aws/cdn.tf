@@ -9,12 +9,18 @@ resource "aws_cloudfront_distribution" "blog" {
     }
   }
 
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
   enabled = true
   default_root_object = "index.html"
   default_cache_behavior {
     allowed_methods = [ "GET","POST","PUT","DELETE","PATCH","OPTIONS","HEAD"]
     cached_methods = [ "GET","HEAD" ]
-    target_origin_id = "${local.s3_origin_id}"
+    target_origin_id = "${local.s3_bucket_origin_id}"
     forwarded_values {
       query_string = false
       cookies {
