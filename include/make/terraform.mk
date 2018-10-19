@@ -90,13 +90,22 @@ export TERRAFORM_EXTRA_VARS
 export TERRAFORM_EXTRA_VARS_$(INFRASTRUCTURE_PROVIDER_UPCASE)
 
 terraform_generate_variables:
-	env | grep -E '^TF_VAR_' |  sed 's/^TF_VAR_\(.*\)=\(.*\)/\1 = "\2"/' > $(TERRAFORM_TFVARS_PATH); \
-	sed -i '' 's/= "(true|false)"/= \1/g' $(TERRAFORM_TFVARS_PATH); \
-	echo "$$TERRAFORM_EXTRA_VARS_$(INFRASTRUCTURE_PROVIDER_UPCASE)" >> $(TERRAFORM_TFVARS_PATH); \
-	# Unquote lists, as that isn't valid HCL
-	sed -i '' 's/= "\(\[.*\]\)"/= \1/' $(TERRAFORM_TFVARS_PATH); \
-	echo "environment_name = \"$(ENVIRONMENT)\"" >> $(TERRAFORM_TFVARS_PATH); \
-	echo "$$TERRAFORM_BACKEND_FILE" > $(TERRAFORM_BACKEND_PATH); \
+	# - First, turn all TF_VAR_ variables in our dotenv into proper Terraform variables.
+	#   Ensure that any boolean values are *not* quoted so that they aren't mistaken for strings.
+	# - Then, if our INFRASTRUCTURE_PROVIDER has any extra variables define in its Makefile,
+	#   fetch them and include them in the Makefile.
+	#   (This is handy for things like access and secret keys.)
+	# - Next, ensure that any list variables are quoted properly so that Terraform can
+	#   parse them correctly.
+	# - Next, expose our environment as a variable.
+	# - Finally, capture our backend block from our INFRASTRUCTURE_PROVIDER's Maekfile
+	#   and write that to backend.tfvars.
+	env | grep -E '^TF_VAR_' |  sed 's/^TF_VAR_\(.*\)=\(.*\)/\1 = "\2"/' > $(TERRAFORM_TFVARS_PATH) && \
+	sed -i '' 's/= "(true|false)"/= \1/g' $(TERRAFORM_TFVARS_PATH) && \
+	echo "$$TERRAFORM_EXTRA_VARS_$(INFRASTRUCTURE_PROVIDER_UPCASE)" >> $(TERRAFORM_TFVARS_PATH) && \
+	sed -i '' 's/= "\(\[.*\]\)"/= \1/' $(TERRAFORM_TFVARS_PATH) &&  \
+	echo "environment_name = \"$(ENVIRONMENT)\"" >> $(TERRAFORM_TFVARS_PATH) && \
+	echo "$$TERRAFORM_BACKEND_FILE" > $(TERRAFORM_BACKEND_PATH);
 
 terraform_validate:
 	$(MAKE) terraform_init && $(MAKE) terraform_run TERRAFORM_ACTION=validate
