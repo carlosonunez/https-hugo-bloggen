@@ -17,6 +17,10 @@ run_bats_%_tests:
 	fi; \
 	type_of_tests=$$(basename $(TESTS_DIRECTORY)); \
 	>&2 echo "INFO: Running $$type_of_tests tests from $(PWD)/$(TESTS_DIRECTORY)"; \
+	if [ "$(TEST_TYPE)" == "integration" ]; \
+	then \
+		>&2 echo "WARN: Your integration tests might stage infrastructure. This could take a while."; \
+	fi; \
 	$(MAKE) docker_run \
 		DOCKER_IMAGE=$(BATS_DOCKER_IMAGE) \
 		DOCKER_IMAGE_OPTIONS=$(TESTS_DIRECTORY)
