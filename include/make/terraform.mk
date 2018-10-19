@@ -91,6 +91,7 @@ export TERRAFORM_EXTRA_VARS_$(INFRASTRUCTURE_PROVIDER_UPCASE)
 
 terraform_generate_variables:
 	env | grep -E '^TF_VAR_' |  sed 's/^TF_VAR_\(.*\)=\(.*\)/\1 = "\2"/' > $(TERRAFORM_TFVARS_PATH); \
+	sed -i '' 's/= "(true|false)"/= \1/g' $(TERRAFORM_TFVARS_PATH); \
 	echo "$$TERRAFORM_EXTRA_VARS_$(INFRASTRUCTURE_PROVIDER_UPCASE)" >> $(TERRAFORM_TFVARS_PATH); \
 	# Unquote lists, as that isn't valid HCL
 	sed -i '' 's/= "\(\[.*\]\)"/= \1/' $(TERRAFORM_TFVARS_PATH); \
