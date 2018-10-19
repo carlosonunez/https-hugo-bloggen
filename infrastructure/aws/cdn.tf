@@ -1,6 +1,7 @@
 resource "aws_cloudfront_origin_access_identity" "blog_access" {}
 
 resource "aws_cloudfront_distribution" "blog" {
+  count = "${var.enable_cloudfront_cdn == 1 ? 1 : 0}"
   origin {
     domain_name =  "${aws_s3_bucket.blog.bucket_regional_domain_name}"
     origin_id = "${local.s3_bucket_origin_id}"

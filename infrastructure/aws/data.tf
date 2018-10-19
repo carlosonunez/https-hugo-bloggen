@@ -4,7 +4,8 @@ data "aws_route53_zone" "found" {
   private_zone = false
 }
 locals {
-  s3_bucket_name = "${replace(var.hugo_base_url), "^(http|https):\/\/(.*)$", "$2"}"
-  s3_bucket_origin_id = "${local.s3_bucket_name}"
-  route53_record_name = "${replace(var.hugo_base_url, "^(http|https):\/\/([a-zA-Z0-9-_])\.${var.route53_domain_name}$","$1")}"
+  blog_fqdn_requested = "${replace(var.hugo_base_url, "/^.*:///", "")}"
+  s3_bucket_name = "${local.blog_fqdn_requested}"
+  s3_bucket_origin_id = "${local.blog_fqdn_requested}"
+  route53_record_name = "${replace(local.blog_fqdn_requested, ".${var.route53_domain_name}","")}"
 }

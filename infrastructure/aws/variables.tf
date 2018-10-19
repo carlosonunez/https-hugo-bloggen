@@ -47,3 +47,12 @@ variable "hugo_base_url" {
 variable "route53_domain_name" {
   description = "The domain name corresponding to the Route53 hosted zone to use."
 }
+
+variable "enable_cloudfront_cdn" {
+  description = <<EOF
+When enabled, Terraform will deploy a CloudFront distribution to reduce
+blog loading times. Disabling this for tests is recommended, as it can take
+30 minutes for a distribution to delete itself.
+EOF
+  default = true
+}
