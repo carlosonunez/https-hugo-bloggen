@@ -7,5 +7,9 @@ output "bucket_url" {
 }
 
 output "cloudfront_url" {
-  value = "${aws_s3_bucket.blog.domain_name}"
+  value = "${aws_s3_bucket.blog.bucket_domain_name}"
+}
+
+output "blog_url" {
+  value = "${aws_route53_record.blog.fqdn}"
 }
