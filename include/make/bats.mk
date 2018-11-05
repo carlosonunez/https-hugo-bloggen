@@ -1,23 +1,9 @@
 #!/usr/bin/env make
-define BATS_USAGE
-/include/make/bats.mk
-Targets for running Bats tests.
-
-Targets:
-
-  run_bats_(TEST_TYPE)_tests     Runs BATS tests within a given folder called
-	                               TEST_TYPE.
-																 (e.g. 'unit', 'integration')
-
-Environment Variables
-
-  BATS_DOCKER_IMAGE              The Docker image to use; must contain bats.
+BATS_SUMMARY := Targets for running tests with Bash Automated Testing System
+BATS_REQUIRED_ENV_VARS := BATS_DOCKER_IMAGE: The Docker image containing BATS to use.
+define BATS_TARGETS
+run_bats_<TEST_TYPE>_tests: Runs a test suite within tests/TEST_TYPE.
 endef
-export BATS_DOCKER_IMAGE
-
-.PHONY: bats_usage
-bats_usage:
-	@echo "$$BATS_DOCKER_IMAGE"
 
 .PHONY: run_bats_%_tests
 run_bats_%_tests: \
@@ -31,6 +17,10 @@ run_bats_%_tests:
 	fi; \
 	type_of_tests=$$(basename $(TESTS_DIRECTORY)); \
 	>&2 echo "INFO: Running $$type_of_tests tests from $(PWD)/$(TESTS_DIRECTORY)"; \
+	if [ "$(TEST_TYPE)" == "integration" ]; \
+	then \
+		>&2 echo "WARN: Your integration tests might stage infrastructure. This could take a while."; \
+	fi; \
 	$(MAKE) docker_run \
 		DOCKER_IMAGE=$(BATS_DOCKER_IMAGE) \
 		DOCKER_IMAGE_OPTIONS=$(TESTS_DIRECTORY)

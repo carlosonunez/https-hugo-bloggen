@@ -1,65 +1,61 @@
 #!/usr/bin/env make
-define DOCKER_USAGE
-include/make/docker.mk
-Interface for running docker actions.
-
-Targets:
-
-  run_docker               Performs a docker run against any file
-                           that ends in *.sh or *.bash.
-
-  docker_usage             Displays this help message.
-
-Required Environment Variables:
-
-  ENVIRONMENT_FILE         An environment dotfile to load into the container.
-
-  DOCKER_IMAGE             The image to run for our Docker container.
-  
-  DOCKER_IMAGE_OPTIONS     Options to provide the container's ENTRYPOINT with.
-
-Optional Environment variables:
-
-  PWD_TO_USE               The directory to set the container's PWD as.
-	                         (Default: $(PWD_TO_USE))
-
-  DOCKER_PWD               The directory to mount the host's current working
-                           directory into.
-                          (Default: $(DOCKER_PWD))
-
-Notes:
-
-- The host's Docker UNIX socket is volume-mounted by default to allow for
-  nested container creation. Feel free to remove this to make
-  this Make target more secure.
-
-- '--network=host' is turned on by default to allow for easy port allocation
-  and networking from nested Docker containers. This might introduce
-  security concerns. If it does, consider creating an ephemeral
-  Docker network with 'docker network create'.
-
-- Environment dotfiles are volume-mounted into '/env'.
+DOCKER_SUMMARY := Interact with Docker in Make.
+DOCKER_TARGETS := docker_run: Executes 'docker run'.
+define DOCKER_REQUIRED_ENV_VARS
+ENVIRONMENT_FILE: The environment to use (automatic if using environment.mk)
+DOCKER_IMAGE: The image to create our container from.
+DOCKER_IMAGE_OPTIONS: Options to provide to the container's ENTRYPOINT.
 endef
-export DOCKER_USAGE
+define DOCKER_OPTIONAL_ENV_VARS
+PWD_TO_USE: The container's PWD. Default is your current working directory.
+DOCKER_PWD: The name of the mount point PWD_TO_USE uses within the container. \
+	(Default: $(DOCKER_PWD))
+endef
+define DOCKER_EXAMPLE
+The following will create a container for 'jq':
+
+$$> DOCKER_IMAGE=jq make docker_run
+
+The following will create a container for 'jq' and use /tmp as the \
+container's PWD:
+
+$$> DOCKER_IMAGE=jq PWD_TO_USE=/tmp make docker_run
+
+The following will do the above, but use '/foo' as the directory /tmp is \
+volume mounted into:
+
+$$> DOCKER_IMAGE=jq DOCKER_PWD=/foo PWD_TO_USE=/tmp make docker_run
+endef
+define DOCKER_NOTES
+- All containers launched by docker_run are non-interactive and allocate a \
+  pseudo-TTY.
+endef
+
 DOCKER_PWD ?= /work
 PWD_TO_USE ?= $(PWD)
 
-docker_usage:
-	@echo "$$DOCKER_USAGE"
 .PHONY: docker_run
 docker_run: \
 	check_environment_variable_DOCKER_IMAGE \
 	check_environment_variable_DOCKER_IMAGE_OPTIONS
 
 docker_run:
+	if [ ! -z "$(HOST_PWD)" ]; \
+	then \
+		host_pwd="$(HOST_PWD)"; \
+		pwd_to_use=$$(echo $(PWD_TO_USE) | sed "s#$(DOCKER_PWD)#$(HOST_PWD)#"); \
+	else \
+		host_pwd="$(PWD)"; \
+		pwd_to_use="$(PWD_TO_USE)"; \
+	fi; \
 	docker run --tty \
 		--rm \
 		--network="host" \
 		--env-file $(ENVIRONMENT_FILE) \
-		--env HOST_PWD=$(PWD) \
+		--env HOST_PWD="$$host_pwd" \
 		--volume $(ENVIRONMENT_FILE):/env \
 		--volume /var/run/docker.sock:/var/run/docker.sock \
 		--volume $$(which docker):/usr/bin/docker \
-		--volume $(PWD_TO_USE):$(DOCKER_PWD) \
+		--volume $$pwd_to_use:$(DOCKER_PWD) \
 		--workdir $(DOCKER_PWD) \
 		$(DOCKER_IMAGE) $(DOCKER_IMAGE_OPTIONS)

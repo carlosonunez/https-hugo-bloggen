@@ -1,23 +1,10 @@
 #!/usr/bin/env make
-define SHELLCHECK_USAGE
-include/make/shellcheck.mk
-Interface for running shellcheck actions.
+SHELLCHECK_SUMMARY := Run Dockerized shellcheck in Make.
+SHELLCHECK_TARGETS := run_shellcheck: Run shellcheck against all shell \
+	scripts in repository.
+SHELLCHECK_OPTIONAL_ENV_VARS := \
+	SHELLCHECK_DOCKER_IMAGE: The Docker image to use (Default: $(SHELLCHECK_DOCKER_IMAGE))
 
-Targets:
-
-  run_shellcheck               Performs a shellcheck run against any file
-                               that ends in *.sh or *.bash.
-
-  shellcheck_usage             Displays this help message.
-
-Optional Environment Variables:
-
-  SHELLCHECK_DOCKER_IMAGE      The shellcheck Docker image to use.
-endef
-export SHELLCHECK_USAGE
-
-shellcheck_usage:
-	@echo "$$SHELLCHECK_USAGE"
 .PHONY: run_shellcheck
 run_shellcheck:
 	$(MAKE) check_environment_variable_SHELLCHECK_DOCKER_IMAGE && \

@@ -1,4 +1,9 @@
 #!/usr/bin/env make
+HUGO_SUMMARY := Create test Hugo blogs with Make through Docker.
+HUGO_TARGETS := create_test_hugo_server: Initializes a long-running test Hugo server.
+HUGO_REQUIRED_ENV_VARS := ENVIRONMENT_FILE: A path to a dotenv file. \
+	(Automatic if using the environment.mk module.)
+
 .PHONY: create_test_hugo_server
 create_test_hugo_server:
 	docker run --tty \

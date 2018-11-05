@@ -157,19 +157,25 @@ else
   POST_NAME="$1"
 fi
 
-initialize_hugo_config &&
-build_hugo_docker_image
-if [ "$KEEP_HUGO_SERVER_ALIVE_FOR_TESTING" == "false" ]
+if ! {
+  initialize_hugo_config &&
+  build_hugo_docker_image &&
+  if [ "$KEEP_HUGO_SERVER_ALIVE_FOR_TESTING" == "false" ]
+  then
+    make_a_test_post_if_applicable &&
+    start_hugo &&
+    test_hugo;
+    result=$?
+    stop_hugo && remove_test_post_if_applicable
+    exit $result
+  else
+    >&2 echo "WARN: Asked to keep a Hugo server up for testing. \
+  Remember to kill your Docker containers after you're done: \
+  docker rm ${HUGO_CONTAINER_NAME} -f"
+    start_hugo
+  fi;
+}
 then
-  make_a_test_post_if_applicable &&
-  start_hugo &&
-  test_hugo;
-  result=$?
-  stop_hugo && remove_test_post_if_applicable
-  exit $result
-else
-  >&2 echo "WARN: Asked to keep a Hugo server up for testing. \
-Remember to kill your Docker containers after you're done: \
-docker rm ${HUGO_CONTAINER_NAME} -f"
-  start_hugo
+  >&2 echo "ERROR: Failed to start Hugo."
+  return 1
 fi
