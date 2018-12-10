@@ -28,14 +28,12 @@ integration: terraform_init run_bats_integration_tests
 
 .PHONY: deploy deploy_infrastructure deploy_site
 
-deploy:
-	# In progress!
+deploy: deploy_infrastructure deploy_blog
 
 deploy_infrastructure: terraform_apply
 
-.PHONY: destroy destroy_infrastructure
+deploy_blog: generate_static_files deploy_static_files
 
-destroy:
-	# In progress
+.PHONY: destroy
 
-destroy_infrastructure: terraform_destroy
+destroy: terraform_destroy
