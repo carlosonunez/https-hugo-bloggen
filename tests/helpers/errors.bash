@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
-show_additional_error_info() {
-  cat <<-EOF
-Test failed.
-
-Output
-======
-$output
-
-NOTE: You might need to scroll up to see the full error log.
-
-EOF
+show_additional_error_info_when_test_fails() {
+  >&2 echo "Test failed with status code $status".
+  if [ ! -z "$output" ]
+  then
+    >&2 echo "Output: $output"
+  fi
 }

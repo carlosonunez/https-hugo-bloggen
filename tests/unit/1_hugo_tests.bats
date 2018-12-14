@@ -1,14 +1,26 @@
 #!/usr/bin/env bats
 load ../helpers/errors
+load ../helpers/fail_fast
 
-@test "Ensure that our blog renders locally" {
-  run ./scripts/render_hugo_blog.sh
-  show_additional_error_info
+setup() {
+  fail_fast
+}
+
+teardown() {
+  show_additional_error_info_when_test_fails
+  mark_test_as_complete
+}
+
+@test "Ensure that the local Hugo container starts" {
+  run nc -z localhost 8080
   [ "$status" -eq 0 ]
 }
 
-@test "Ensure that we can see new blog posts locally" {
-  run ./scripts/render_hugo_blog.sh 'my_new_post'
-  show_additional_error_info
+@test "Ensure that new blog posts show up" {
+  run curl --output /dev/null \
+    --silent \
+    --write-out '%{http_code}' \
+    "http://localhost:8080/post/test_post"
   [ "$status" -eq 0 ]
+  [ "$output" == "200" ]
 }
