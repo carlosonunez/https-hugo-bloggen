@@ -19,12 +19,17 @@ test: lint unit integration
 
 lint: lint_shell lint_terraform
 
-lint_shell: run_shellcheck
+unit: \
+	terraform_init \
+	setup_hugo_test_environment \
+	run_bats_unit_tests \
+	teardown_hugo_test_environment
 
-lint_terraform: terraform_init terraform_validate
-
-unit: terraform_init run_bats_unit_tests
-integration: terraform_init run_bats_integration_tests
+integration: \
+	terraform_init \
+	terraform_apply \
+	run_bats_integration_tests \
+	terraform_destroy
 
 .PHONY: deploy deploy_infrastructure deploy_site
 
@@ -37,3 +42,12 @@ deploy_blog: generate_static_files deploy_static_files
 .PHONY: destroy
 
 destroy: terraform_destroy
+
+.PHONY: lint_shell lint_terraform
+
+lint_shell: run_shellcheck
+
+lint_terraform: \
+	terraform_init \
+	terraform_validate
+

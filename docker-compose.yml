@@ -1,0 +1,17 @@
+version: "3.7"
+services:
+  hugo:
+    build:
+      context: .
+      args:
+        - HUGO_VERSION=${HUGO_VERSION:?Please define the version of Hugo to install.}
+    tty: true
+    env_file:
+      - ${ENVIRONMENT_FILE:?Please define an environment file.}
+    environment:
+      - HUGO_BASE_URL=http://localhost
+    volumes:
+      - "${PWD}/site:/site"
+    ports:
+      - 8080:8080
+    command: "server --baseURL ${HUGO_BASE_URL} --bind 0.0.0.0 -p 8080"

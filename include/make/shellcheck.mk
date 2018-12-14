@@ -7,7 +7,10 @@ SHELLCHECK_OPTIONAL_ENV_VARS := \
 
 .PHONY: run_shellcheck
 run_shellcheck:
-	$(MAKE) check_environment_variable_SHELLCHECK_DOCKER_IMAGE && \
-	$(MAKE) docker_run \
-		DOCKER_IMAGE=$(SHELLCHECK_DOCKER_IMAGE) \
-		DOCKER_IMAGE_OPTIONS=$$(find . \( -name *.sh -o -name *.bash \))
+	if ! files_found="$$(find . \( -name *.sh -o -name *.bash \))"; \
+	then \
+		$(MAKE) check_environment_variable_SHELLCHECK_DOCKER_IMAGE && \
+		$(MAKE) docker_run \
+			DOCKER_IMAGE=$(SHELLCHECK_DOCKER_IMAGE) \
+			DOCKER_IMAGE_OPTIONS="$$files_found"; \
+	fi
