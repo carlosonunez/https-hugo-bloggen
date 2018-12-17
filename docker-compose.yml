@@ -1,27 +1,52 @@
-version: "2.6"
+version: "2.4"
 services:
-  hugo:
+  hugo-base:
     build:
       context: .
       args:
-        - HUGO_VERSION=${HUGO_VERSION:?Please define the version of Hugo to install.}
+        - HUGO_VERSION
+
+  hugo-generate-configs:
+    image: hairyhenderson/gomplate
+    env_file: .env
+    volumes:
+      - "${PWD}:/work"
+    working_dir: /work
+    command:
+      - "-V"
+      - "--file"
+      - config.toml.tmpl
+      - "--out"
+      - config.toml
+
+  hugo-generate-test-configs:
+    extends: hugo-generate-configs
+    env_file: .env.test
+
+  hugo:
+    extends: hugo-base
+    env_file: .env
     tty: true
-    env_file:
-      - ${ENVIRONMENT_FILE:?Please define an environment file.}
-    environment:
-      - HUGO_BASE_URL=http://localhost
     volumes:
       - "${PWD}/site:/site"
-      - "${PWD}/layouts:/site/layouts"
-      - "${PWD}/themes:/site/themes"
-      - "${PWD}/posts:/site/content"
-      - "/dev/null:/site/config.toml"
+      - "${PWD}/layouts/:/site/layouts"
+      - "${PWD}/themes/:/site/themes"
+      - "${PWD}/posts/:/site/content"
+      - "${PWD}/config.toml:/site/config.toml"
     working_dir: /site
     ports:
       - 8080:8080
-    command: "server --baseURL ${HUGO_BASE_URL} --bind 0.0.0.0 -p 8080"
-  hugo_tests:
-    extends:
-      - hugo
+    command:
+      - server
+      - --baseURL
+      - "${HUGO_BASE_URL}"
+      - --bind
+      - "0.0.0.0"
+      - -p
+      - "8080"
+
+  hugo-tests:
+    extends: hugo
+    env_file: .env.test
     volumes:
-      - "${PWD}/tests/fixtures/test_posts:/site/content"
+      - "${PWD}/tests/fixtures/test_posts/:/site/content"
