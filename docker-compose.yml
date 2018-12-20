@@ -98,7 +98,7 @@ services:
       - terraform-generate-tfvars
     command:
       - destroy
-      - auto-approve
+      - "-auto-approve"
       - "-input=false"
 
   terraform-output:
@@ -170,7 +170,7 @@ services:
   hugo-deploy:
     env_file: .env
     environment:
-      - BUCKET_TO_DEPLOY_TO=${BUCKET_TO_DEPLOY_TO?Please provide the bucket to deploy to.}
+      - BUCKET_TO_DEPLOY_TO
     volumes:
       - "${PWD}:/work"
     image: "${AWSCLI_DOCKER_IMAGE:-anigeo/awscli}"
