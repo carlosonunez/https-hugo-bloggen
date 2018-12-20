@@ -1,10 +1,10 @@
-baseurl = "{{ getenv 'HUGO_BASE_URL' }}'
-title = "{{ getenv 'HUGO_TITLE' }}"
-author = "{{ file.Read "AUTHOR" }}"
-paginate = "{{ getenv 'HUGO_PAGINATE' }}"
+baseurl = "{{ getenv "HUGO_BASE_URL" }}"
+title = "{{ getenv "HUGO_TITLE" }}"
+author = "{{ file.Read "AUTHOR" | strings.ReplaceAll "\n" "" }}"
+paginate = "{{ getenv "HUGO_PAGINATE" }}"
 theme = "arabica"
 
 [params]
-  description = "{{ getenv 'HUGO_BLOG_DESCRIPTION' }}"
-  dateFormatUse = 2018-01-01
-  twitter = "{{ getenv "HUGO_TWITTER_HANDLE" }}"
+  description = "{{ getenv "HUGO_DESCRIPTION" }}"
+  dateFormatUse = "2018-01-01"
+  twitter = "{{ getenv "TWITTER_HANDLE" }}"
