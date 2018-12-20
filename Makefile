@@ -28,16 +28,25 @@ unit: \
 integration: \
 	terraform_init \
 	terraform_apply \
+	deploy_blog \
 	run_bats_integration_tests \
 	terraform_destroy
 
-.PHONY: deploy deploy_infrastructure deploy_site
+.PHONY: deploy deploy_infrastructure deploy_blog
 
 deploy: deploy_infrastructure deploy_blog
 
 deploy_infrastructure: terraform_apply
 
-deploy_blog: generate_static_files deploy_static_files
+deploy_blog:
+	bucket_path=$$(VARIABLE_TO_GET=blog_url make terraform_output); \
+	if [ -z "$$bucket_path" ]; \
+	then \
+		>&2 echo "ERROR: No AWS S3 bucket to deploy to was found."; \
+		exit 1; \
+	fi; \
+	$(MAKE) generate_hugo_static_files && \
+	BUCKET_TO_DEPLOY_TO="$$bucket_path" $(MAKE) deploy_hugo_static_files
 
 .PHONY: destroy
 
@@ -50,4 +59,3 @@ lint_shell: run_shellcheck
 lint_terraform: \
 	terraform_init \
 	terraform_validate
-
