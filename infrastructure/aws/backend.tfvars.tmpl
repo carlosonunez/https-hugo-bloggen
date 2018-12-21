@@ -1,7 +1,3 @@
-terraform {
-  backend "s3" {
-    bucket = "{{ getenv "TERRAFORM_STATE_S3_BUCKET_NAME" }}"
-    key = "{{ getenv "TERRAFORM_STATE_S3_BUCKET_KEY" }}"
-    region = "{{ getenv "AWS_REGION" "us-east-1" }}"
-  }
-}
+bucket = "{{ .Env.TERRAFORM_STATE_S3_BUCKET_NAME }}"
+key = "{{ .Env.TERRAFORM_STATE_S3_BUCKET_KEY }}"
+region = "{{ getenv "AWS_REGION" "us-east-1" }}"
