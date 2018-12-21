@@ -17,15 +17,8 @@ define ENVIRONMENT_NOTES
 	env.example to use this module.
 endef
 
-ifeq ($(ENVIRONMENT),)
-ifdef VERBOSE
-$(warning An environment name was not provided; assuming local dev)
-endif
-endif
-ENVIRONMENT ?= local
-
 EXAMPLE_ENVIRONMENT_FILE := $(PWD)/env.example
-ENVIRONMENT_FILE := $(PWD)/env.$(ENVIRONMENT)
+ENVIRONMENT_FILE := $(PWD)/.env
 
 ifeq ("$(wildcard $(EXAMPLE_ENVIRONMENT_FILE))","")
 $(error Missing example environment file: $(EXAMPLE_ENVIRONMENT_FILE))
