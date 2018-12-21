@@ -1,6 +1,6 @@
 {{- define "create_terraform_key_value" -}}
 {{- $original_key := regexp.Replace "^(.*)=.*" "$1" . -}}
-{{- $key := ( regexp.Replace "^(.*)=.*" "$1" $original_key | strings.ToLower ) -}}
+{{- $key := ( regexp.Replace "^(.*)=.*" "$1" $original_key | regexp.Replace "^TF_VAR_" "" | strings.ToLower ) -}}
 {{- $value := ( . | strings.ReplaceAll $original_key "" | regexp.Replace "^=" "" ) -}}
 {{- if ( $value | regexp.Match "^[[:punct:]].*[[:punct:]]$" ) -}}
 {{- $key }} = {{ $value -}}
