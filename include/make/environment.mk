@@ -1,14 +1,6 @@
 #!/usr/bin/env make
-
-ifeq ($(ENVIRONMENT),)
-ifdef VERBOSE
-$(warning An environment name was not provided; assuming local dev)
-endif
-endif
-ENVIRONMENT ?= local
-
 EXAMPLE_ENVIRONMENT_FILE := $(PWD)/env.example
-ENVIRONMENT_FILE := $(PWD)/env.$(ENVIRONMENT)
+ENVIRONMENT_FILE := $(PWD)/.env
 
 ifeq ("$(wildcard $(EXAMPLE_ENVIRONMENT_FILE))","")
 $(error Missing example environment file: $(EXAMPLE_ENVIRONMENT_FILE))
@@ -20,6 +12,9 @@ endif
 
 include $(ENVIRONMENT_FILE)
 export $(shell sed 's/=.*//' $(ENVIRONMENT_FILE))
+ifeq ($(ENVIRONMENT),)
+$(error Please provide an environment name)
+endif
 
 .PHONY: check_environment_variable_%
 check_environment_variable_%:
