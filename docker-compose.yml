@@ -1,8 +1,23 @@
 version: "2.4"
 services:
+  terraform-base:
+    image: hashicorp/terraform
+    volumes:
+      - "${PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER?Please provide an infrastructure provider.}:/work"
+    working_dir: /work
+    env_file: ${ENVIRONMENT_FILE:-.env}
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT?Please provide an environment name.}
+
+  hugo-base:
+    build:
+      context: .
+      args:
+        - HUGO_VERSION
+
   unit_tests:
     image: graze/bats
-    env_file: .env.test
+    env_file: ${ENVIRONMENT_FILE:-.env}.test
     depends_on:
       - hugo-generate-test-configs
       - hugo-tests
@@ -14,27 +29,20 @@ services:
 
   integration_tests:
     image: graze/bats
-    env_file: .env
+    env_file: ${ENVIRONMENT_FILE:-.env}
     depends_on:
       - hugo-generate-configs
     volumes:
       - "${PWD}/tests/integration:/tests"
     command: /tests
 
-  terraform-base:
-    image: hashicorp/terraform
-    volumes:
-      - "${PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER?Please provide an infrastructure provider.}:/work"
-    working_dir: /work
-    env_file: .env
-    environment:
-      - ENVIRONMENT=${ENVIRONMENT?Please provide an environment name.}
-
   terraform-generate-tfvars:
-    extends: terraform-base
     image: hairyhenderson/gomplate
     volumes:
-      - "$PWD/.env:/.env"
+      - "$PWD/${ENVIRONMENT_FILE:-.env}:/${ENVIRONMENT_FILE:-.env}"
+    env_file: ${ENVIRONMENT_FILE:-.env}
+    environment:
+      - GOMPLATE_SUPPRESS_EMPTY=true
     command:
       - "--file"
       - terraform.tfvars.tmpl
@@ -44,8 +52,9 @@ services:
   terraform-generate-backend-vars:
     extends: terraform-base
     image: hairyhenderson/gomplate
+    env_file: ${ENVIRONMENT_FILE:-.env}
     volumes:
-      - "$PWD/.env:/.env"
+      - "$PWD/${ENVIRONMENT_FILE:-.env}:/${ENVIRONMENT_FILE:-.env}"
     environment:
       - GOMPLATE_SUPPRESS_EMPTY=true
     command:
@@ -57,26 +66,31 @@ services:
 
   terraform-validate:
     extends: terraform-base
+    env_file: ${ENVIRONMENT_FILE:-.env}
     depends_on:
       - terraform-generate-tfvars
     command: validate
 
   terraform-init:
     extends: terraform-base
+    env_file: ${ENVIRONMENT_FILE:-.env}
     depends_on:
       - terraform-generate-backend-vars
     command:
       - init
-      - "-backend-config=/work/backend.tfvars"
+      - "-input=false"
+      - "-backend=true"
 
   terraform-get:
     extends: terraform-base
+    env_file: ${ENVIRONMENT_FILE:-.env}
     depends_on:
       - terraform-generate-tfvars
     command: get
 
   terraform-plan:
     extends: terraform-base
+    env_file: ${ENVIRONMENT_FILE:-.env}
     depends_on:
       - terraform-generate-tfvars
     command:
@@ -85,6 +99,7 @@ services:
 
   terraform-apply:
     extends: terraform-base
+    env_file: ${ENVIRONMENT_FILE:-.env}
     depends_on:
       - terraform-generate-tfvars
     command:
@@ -94,6 +109,7 @@ services:
 
   terraform-destroy:
     extends: terraform-base
+    env_file: ${ENVIRONMENT_FILE:-.env}
     depends_on:
       - terraform-generate-tfvars
     command:
@@ -103,6 +119,7 @@ services:
 
   terraform-output:
     extends: terraform-base
+    env_file: ${ENVIRONMENT_FILE:-.env}
     environment:
       - VARIABLE_TO_GET
     depends_on:
@@ -111,15 +128,9 @@ services:
       - output
       - "$VARIABLE_TO_GET"
 
-  hugo-base:
-    build:
-      context: .
-      args:
-        - HUGO_VERSION
-
   hugo-generate-configs:
     image: hairyhenderson/gomplate
-    env_file: .env
+    env_file: ${ENVIRONMENT_FILE:-.env}
     volumes:
       - "${PWD}:/work"
     working_dir: /work
@@ -131,11 +142,11 @@ services:
 
   hugo-generate-test-configs:
     extends: hugo-generate-configs
-    env_file: .env.test
+    env_file: ${ENVIRONMENT_FILE:-.env}.test
 
   hugo:
     extends: hugo-base
-    env_file: .env
+    env_file: ${ENVIRONMENT_FILE:-.env}
     tty: true
     volumes:
       - "${PWD}/site:/site"
@@ -158,17 +169,17 @@ services:
 
   hugo-generate:
     extends: hugo
-    env_file: .env
+    env_file: ${ENVIRONMENT_FILE:-.env}
     command: []
 
   hugo-tests:
     extends: hugo
-    env_file: .env.test
+    env_file: ${ENVIRONMENT_FILE:-.env}.test
     volumes:
       - "${PWD}/tests/fixtures/test_posts/:/site/content/post"
 
   hugo-deploy:
-    env_file: .env
+    env_file: ${ENVIRONMENT_FILE:-.env}
     environment:
       - BUCKET_TO_DEPLOY_TO
     volumes:
