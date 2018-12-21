@@ -80,6 +80,7 @@ services:
       - init
       - "-input=false"
       - "-backend=true"
+      - "-backend-config=/work/backend.tfvars"
 
   terraform-get:
     extends: terraform-base
