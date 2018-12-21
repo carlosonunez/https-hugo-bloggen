@@ -33,4 +33,4 @@ terraform_output:
 
 terraform_%:
 	action=$$(echo "$@" | sed 's/terraform_//'); \
-	docker-compose run "terraform-$$action"
+	docker-compose up "terraform-$$action"
