@@ -15,7 +15,7 @@ services:
       args:
         - HUGO_VERSION
 
-  unit_tests:
+  hugo-unit-tests:
     image: graze/bats
     env_file: ${ENVIRONMENT_FILE:-.env}.test
     depends_on:
@@ -24,10 +24,10 @@ services:
     links:
       - hugo-tests:hugo
     volumes:
-      - "${PWD}/tests/unit:/tests"
-    command: /tests
+      - "${PWD}/tests:/tests"
+    command: /tests/unit
 
-  integration_tests:
+  hugo-integration-tests:
     image: graze/bats
     env_file: ${ENVIRONMENT_FILE:-.env}
     depends_on:
@@ -174,12 +174,16 @@ services:
     command: []
 
   hugo-tests:
+    depends_on:
+      - hugo-generate-test-configs
     extends: hugo
     env_file: ${ENVIRONMENT_FILE:-.env}.test
     volumes:
       - "${PWD}/tests/fixtures/test_posts/:/site/content/post"
 
   hugo-deploy:
+    depends_on:
+      - hugo-generate-configs
     env_file: ${ENVIRONMENT_FILE:-.env}
     environment:
       - BUCKET_TO_DEPLOY_TO
