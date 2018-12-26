@@ -10,6 +10,7 @@ services:
     env_file: .env
     volumes:
       - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER?Please provide an infra provider.}:/work"
+      - "$PWD/.env:/.env"
     working_dir: /work
     command:
       - "--file"
@@ -22,6 +23,7 @@ services:
     env_file: .env
     volumes:
       - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER?Please provide an infra provider.}:/work"
+      - "$PWD/.env:/.env"
     working_dir: /work
     command:
       - "--file"
@@ -143,9 +145,11 @@ services:
     volumes:
       - "${PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER?Please provide an infrastructure provider.}:/work"
     working_dir: /work
+    env_file: .env
     environment:
       - TF_INPUT=0
-      - TF_CLI_ARGS_plan=-lock=false -auto-approve=false
-      - TF_CLI_ARGS_apply=-lock=false -auto-approve=false
-      - TF_CLI_ARGS_destroy=-lock=false -auto-approve=false
+      - TF_CLI_ARGS_init=-backend=true -backend-config=backend.tfvars
+      - TF_CLI_ARGS_plan=-lock=false -auto-approve=true
+      - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
+      - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
 

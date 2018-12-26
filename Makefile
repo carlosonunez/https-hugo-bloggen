@@ -63,14 +63,18 @@ run_hugo_%_tests:
 _remove_generated_static_content:
 	rm -rf site/
 
-_set_up_remote_environment: terraform_init terraform_apply
+_set_up_remote_environment: generate_terraform_vars terraform_init terraform_apply
 
 _tear_down_remote_environment: terraform_destroy
 
 _tear_down_local_environment:
 	docker-compose down
 
-.PHONY: terraform_%
+.PHONY: terraform_% generate_terraform_vars
 terraform_%:
 	action=$$(echo "$@" | sed 's/terraform_//'); \
 	docker-compose run --rm terraform $$action
+
+generate_terraform_vars:
+	docker-compose run --rm generate-terraform-tfvars && \
+	docker-compose run --rm generate-terraform-backend-vars
