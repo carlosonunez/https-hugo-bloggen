@@ -1,31 +1,22 @@
+ifneq ($(VERBOSE),true)
 MAKEFLAGS += --silent
+endif
 SHELL := /usr/bin/env bash
-EXAMPLE_ENVIRONMENT_FILE := $(PWD)/env.example
-ENVIRONMENT_FILE := $(PWD)/.env
 
-ifeq ("$(wildcard $(EXAMPLE_ENVIRONMENT_FILE))","")
-$(error Missing example environment file: $(EXAMPLE_ENVIRONMENT_FILE))
-endif
-
-ifeq (,$(wildcard $(ENVIRONMENT_FILE)))
-$(error Missing environment file: $(ENVIRONMENT_FILE))
-endif
-
-include $(ENVIRONMENT_FILE)
-export $(shell sed 's/=.*//' $(ENVIRONMENT_FILE))
-ifeq ($(ENVIRONMENT),)
-$(error Please provide an environment name)
-endif
+.PHONY: create_env
+create_env:
+	sed 's/ #.*$$//; /^#/d; /^$$/d' env.example > .env;
 
 .PHONY: all
-all: lint unit integration deploy
+all: lint unit integration stage deploy
 
 .PHONY: test
 test: unit integration
 
-.PHONY: unit integration deploy
+.PHONY: unit integration stage deploy
 
 unit: \
+	unit_setup \
 	terraform_validate \
 	run_hugo_unit_tests \
 	unit_teardown
@@ -35,51 +26,51 @@ integration: \
 	run_hugo_integration_tests \
 	integration_teardown
 
-.PHONY: deploy deploy_infrastructure deploy_blog
+stage: set_up_remote_environment
 
-deploy: deploy_infrastructure deploy_blog
+deploy:
+	export S3_BUCKET=$$(docker-compose run --rm terraform output blog_url); \
+	S3_BUCKET_TO_DEPLOY_TO="$${S3_BUCKET?Please provide a S3 bucket.}" \
+		docker-compose run --rm deploy-hugo
 
-deploy_infrastructure: terraform_apply
+.PHONY: unit_setup integration_setup remove_generated_static_content
 
-deploy_blog:
-	bucket_path=$$(VARIABLE_TO_GET=blog_url make terraform_output); \
-	if [ -z "$$bucket_path" ]; \
-	then \
-		>&2 echo "ERROR: No AWS S3 bucket to deploy to was found."; \
-		exit 1; \
-	fi; \
-	$(MAKE) generate_hugo_static_files && \
-	BUCKET_TO_DEPLOY_TO="$$bucket_path" $(MAKE) deploy_hugo_static_files
+unit_setup: _remove_generated_static_content
 
-.PHONY: destroy
-
-destroy: terraform_destroy
-
-.PHONY: unit_setup integration_setup
-
-unit_setup:
-	rm -rf site/
-
-integration_setup: terraform_init terraform_apply deploy_blog
+integration_setup: _set_up_remote_environment deploy
 
 .PHONY: unit_teardown integration_teardown
 
-unit_teardown:
-	docker-compose down
+unit_teardown: _tear_down_local_environment
 
-integration_teardown:
-	terraform_destroy && docker-compose down
+integration_teardown: _tear_down_remote_environment _tear_down_local_environment
 
 .PHONY: run_hugo_%_tests
 run_hugo_%_tests:
 	tests_to_run=$$(echo "$@" | sed 's/run_hugo_\([a-zA-Z]\+\)_tests/\1/'); \
 	$(MAKE) $${tests_to_run}_setup; \
-	HUGO_VERSION="$(HUGO_VERSION)" docker-compose run --rm "hugo-$$tests_to_run-tests"; \
+	docker-compose run --rm "hugo-$$tests_to_run-tests"; \
 	test_status=$$?; \
 	$(MAKE) $${tests_to_run}_teardown; \
 	exit $$test_status
 
+.PHONY: \
+	_remove_generated_static_content \
+	_set_up_remote_environment \
+	_tear_down_local_environment \
+	_tear_down_remote_environment
+
+_remove_generated_static_content:
+	rm -rf site/
+
+_set_up_remote_environment: terraform_init terraform_apply
+
+_tear_down_remote_environment: terraform_destroy
+
+_tear_down_local_environment:
+	docker-compose down
+
 .PHONY: terraform_%
 terraform_%:
 	action=$$(echo "$@" | sed 's/terraform_//'); \
-	docker-compose up "terraform-$$action"
+	docker-compose run --rm terraform $$action
