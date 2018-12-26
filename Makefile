@@ -1,36 +1,39 @@
+MAKEFLAGS += --silent
 SHELL := /usr/bin/env bash
-include include/make/load_first/*.mk
-include include/make/**/*.mk
-include include/make/*.mk
+EXAMPLE_ENVIRONMENT_FILE := $(PWD)/env.example
+ENVIRONMENT_FILE := $(PWD)/.env
 
-ifdef VERBOSE
-$(info Verbose mode is on. Make will show all steps.)
-else
-.SILENT:
+ifeq ("$(wildcard $(EXAMPLE_ENVIRONMENT_FILE))","")
+$(error Missing example environment file: $(EXAMPLE_ENVIRONMENT_FILE))
+endif
+
+ifeq (,$(wildcard $(ENVIRONMENT_FILE)))
+$(error Missing environment file: $(ENVIRONMENT_FILE))
+endif
+
+include $(ENVIRONMENT_FILE)
+export $(shell sed 's/=.*//' $(ENVIRONMENT_FILE))
+ifeq ($(ENVIRONMENT),)
+$(error Please provide an environment name)
 endif
 
 .PHONY: all
 all: lint unit integration deploy
 
 .PHONY: test
-test: lint unit integration
+test: unit integration
 
-.PHONY: lint unit integration deploy
-
-lint: lint_shell lint_terraform
+.PHONY: unit integration deploy
 
 unit: \
-	terraform_init \
-	setup_hugo_test_environment \
-	run_bats_unit_tests \
-	teardown_hugo_test_environment
+	terraform_validate \
+	run_hugo_unit_tests \
+	unit_teardown
 
 integration: \
-	terraform_init \
-	terraform_apply \
-	deploy_blog \
-	run_bats_integration_tests \
-	terraform_destroy
+	integration_setup \
+	run_hugo_integration_tests \
+	integration_teardown
 
 .PHONY: deploy deploy_infrastructure deploy_blog
 
@@ -52,10 +55,31 @@ deploy_blog:
 
 destroy: terraform_destroy
 
-.PHONY: lint_shell lint_terraform
+.PHONY: unit_setup integration_setup
 
-lint_shell: run_shellcheck
+unit_setup:
+	rm -rf site/
 
-lint_terraform: \
-	terraform_init \
-	terraform_validate
+integration_setup: terraform_init terraform_apply deploy_blog
+
+.PHONY: unit_teardown integration_teardown
+
+unit_teardown:
+	docker-compose down
+
+integration_teardown:
+	terraform_destroy && docker-compose down
+
+.PHONY: run_hugo_%_tests
+run_hugo_%_tests:
+	tests_to_run=$$(echo "$@" | sed 's/run_hugo_\([a-zA-Z]\+\)_tests/\1/'); \
+	$(MAKE) $${tests_to_run}_setup; \
+	HUGO_VERSION="$(HUGO_VERSION)" docker-compose run --rm "hugo-$$tests_to_run-tests"; \
+	test_status=$$?; \
+	$(MAKE) $${tests_to_run}_teardown; \
+	exit $$test_status
+
+.PHONY: terraform_%
+terraform_%:
+	action=$$(echo "$@" | sed 's/terraform_//'); \
+	docker-compose up "terraform-$$action"
