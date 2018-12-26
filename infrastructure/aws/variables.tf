@@ -18,10 +18,6 @@ variable "vpc_cidr" {
   description = "The CIDR to assign to the VPC."
 }
 
-variable "environment_name" {
-  description = "The name of the environment to provision."
-}
-
 variable "private_vpc_subnet_cidrs" {
   type = "list"
   description = <<EOF
