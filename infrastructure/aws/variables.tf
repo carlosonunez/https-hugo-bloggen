@@ -50,5 +50,4 @@ When enabled, Terraform will deploy a CloudFront distribution to reduce
 blog loading times. Disabling this for tests is recommended, as it can take
 30 minutes for a distribution to delete itself.
 EOF
-  default = false
 }

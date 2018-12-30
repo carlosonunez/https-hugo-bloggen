@@ -4,7 +4,7 @@
 {{- $value := ( . | strings.ReplaceAll $original_key "" | regexp.Replace "^=" "" ) -}}
 {{- if ( $value | regexp.Match "^[[:punct:]].*[[:punct:]]$" ) -}}
 {{- $key }} = {{ $value -}}
-{{- else if ( $value | regexp.Match "^[0-9]+$" ) -}}
+{{- else if ( $value | regexp.Match "^([0-9]+|false)$" ) -}}
 {{- $key }} = {{ $value -}}
 {{- else -}}
 {{- $key }} = "{{ $value -}}"

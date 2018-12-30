@@ -38,3 +38,14 @@ You can see examples of each in the `aws` directory.
 We currently do not support unit tests for Terraform infrastructure, though this
 might be incorporated in a future release. For now, you can run
 `make validate` to validate your Terraform syntax.
+
+## Defining Variables
+
+You can define Terraform variables in your `.env` by addding `TF_VAR_` to the
+beginning of the Terraform variable being defined.
+
+For example, if you have a variable, `environment_name`, in your `variables.tf`,
+then add `TF_VAR_ENVIRONMENT_NAME=foo` into your `.env` and
+`environment_name = {{ .Env.TF_VAR_ENVIRONMENT_NAME }}` into your
+`infrastructure/$cloud_provider/terraform.tfvars.tmpl` to define and expose it
+to Terraform.
