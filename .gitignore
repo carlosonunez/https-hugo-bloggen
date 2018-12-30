@@ -5,6 +5,7 @@
 .env
 !.env.test
 !env.example
+.env_info
 
 # Ignore transient Terraform files
 .tfplan*

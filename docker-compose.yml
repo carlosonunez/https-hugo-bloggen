@@ -1,5 +1,52 @@
 version: "2.4"
 services:
+  aws:
+    image: anigeo/awscli
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
+    volumes:
+      - "${PWD}:/work"
+
+  get-dotenv-file-from-s3:
+    extends: aws
+    environment:
+      - ENVIRONMENT_NAME
+      - S3_BUCKET
+    volumes:
+      - $PWD:/work
+    command: s3 cp s3://${S3_BUCKET}/${ENVIRONMENT_NAME}/.env /work/.env
+
+  upload-dotenv-file-to-s3:
+    extends: aws
+    environment:
+      - ENVIRONMENT_NAME
+      - S3_BUCKET
+    volumes:
+      - $PWD:/work
+    entrypoint: 
+      - sh
+      - "-c"
+      - "aws s3 mb \"s3://${S3_BUCKET}\" && aws s3 cp /work/.env \"s3://${S3_BUCKET}/${ENVIRONMENT_NAME}/.env\""
+
+  remove-hugo-from-s3:
+    extends: aws
+    env_file: .env
+    environment:
+      - S3_BUCKET
+    image: anigeo/awscli
+    command: s3 rm --recursive "s3://${S3_BUCKET}/"
+
+  deploy-hugo-to-s3:
+    extends: aws
+    depends_on:
+      - generate-hugo-configs
+    env_file: .env
+    environment:
+      - S3_BUCKET
+    command: s3 cp --recursive /work/site/ "s3://${S3_BUCKET}/"
+
   gomplate:
     image: hairyhenderson/gomplate
     environment:
@@ -9,7 +56,7 @@ services:
     extends: gomplate
     env_file: .env
     volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER?Please provide an infra provider.}:/work"
+      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
       - "$PWD/.env:/.env"
     working_dir: /work
     command:
@@ -22,7 +69,7 @@ services:
     extends: gomplate
     env_file: .env
     volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER?Please provide an infra provider.}:/work"
+      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
       - "$PWD/.env:/.env"
     working_dir: /work
     command:
@@ -63,21 +110,18 @@ services:
     tty: true
     volumes:
       - "${PWD}/site:/site"
+      - "${PWD}/posts/:/site/content/post"
       - "${PWD}/layouts/:/site/layouts"
       - "${PWD}/themes/:/site/themes"
       - "${PWD}/static/:/site/static"
       - "${PWD}/config.toml:/site/config.toml"
     working_dir: /site
-    ports:
-      - 8080:8080
 
   hugo-server:
     extends: hugo
     env_file: .env
     depends_on:
       - generate-hugo-configs
-    volumes:
-      - "${PWD}/posts/:/site/content/post"
     command:
       - server
       - --baseURL
@@ -86,6 +130,8 @@ services:
       - "0.0.0.0"
       - -p
       - "8080"
+    ports:
+      - 8080:8080
 
   hugo-test-server:
     extends: hugo
@@ -102,6 +148,8 @@ services:
       - "0.0.0.0"
       - -p
       - "8080"
+    ports:
+      - 8080:8080
 
   hugo-unit-tests:
     image: graze/bats
@@ -118,37 +166,26 @@ services:
   hugo-integration-tests:
     image: graze/bats
     env_file: .env
-    depends_on:
-      - generate-hugo-configs
-    volumes:
-      - "${PWD}/tests/integration:/tests"
-    command: /tests
-
-  deploy-hugo-to-s3:
-    env_file: .env
-    depends_on:
-      - generate-hugo-configs
     environment:
-      - S3_BUCKET_TO_DEPLOY_TO
+      - BLOG_URL
+    depends_on:
+      - generate-hugo-configs
     volumes:
-      - "${PWD}:/work"
-    image: anigeo/awscli
-    command:
-      - s3
-      - cp
-      - "--recursive"
-      - "/work/site/"
-      - "s3://${S3_BUCKET_TO_DEPLOY_TO:-bucket_missing}/"
+      - "${PWD}/tests:/tests"
+    command: /tests/integration
 
   terraform:
     image: hashicorp/terraform
     volumes:
-      - "${PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER?Please provide an infrastructure provider.}:/work"
+      - "${PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
     working_dir: /work
     env_file: .env
     environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
       - TF_INPUT=0
-      - TF_CLI_ARGS_init=-backend=true -backend-config=backend.tfvars
+      - TF_CLI_ARGS_init=-backend=true -backend-config=backend.tfvars -force-copy
       - TF_CLI_ARGS_plan=-lock=false -auto-approve=true
       - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
       - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
