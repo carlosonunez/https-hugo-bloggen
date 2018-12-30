@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 load ../helpers/errors
 load ../helpers/fail_fast
+load ../helpers/html
 
 setup() {
   enable_fail_fast_mode
@@ -15,16 +16,6 @@ setup() {
 teardown() {
   show_additional_error_info_when_test_fails
   disable_fail_fast_mode
-}
-
-find_element_in_hugo_blog() {
-  element="${1?Please provide an element.}"
-  if ! grep -q "$element" <(curl --silent "${LOCAL_HUGO_INSTANCE_URL}")
-  then
-    >&2 echo "Element not found: $element"
-    return 1
-  fi
-  return 0
 }
 
 @test "Ensure that the local Hugo container starts" {
@@ -43,16 +34,16 @@ find_element_in_hugo_blog() {
 }
 
 @test "Ensure that new blog posts show up in the feed" {
-  run find_element_in_hugo_blog "$expected_description_element"
+  run find_element_in_hugo_blog "$expected_description_element" "$LOCAL_HUGO_INSTANCE_URL"
   [ "$status" -eq 0 ]
 }
 
 @test "Ensure that the title shows up" {
-  run find_element_in_hugo_blog "$expected_title_rss_link"
+  run find_element_in_hugo_blog "$expected_title_rss_link" "$LOCAL_HUGO_INSTANCE_URL"
   [ "$status" -eq 0 ]
 }
 
 @test "Ensure that our description shows up" {
-  run find_element_in_hugo_blog "$expected_description_element"
+  run find_element_in_hugo_blog "$expected_description_element" "$LOCAL_HUGO_INSTANCE_URL"
   [ "$status" -eq 0 ]
 }

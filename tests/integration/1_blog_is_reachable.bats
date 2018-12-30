@@ -1,34 +1,32 @@
 #!/usr/bin/env bats
 load ../helpers/errors
+load ../helpers/fail_fast
+
+check_for_blog_url() {
+  test "$HUGO_BASE_URL"
+}
 
 setup() {
-  if [ "$BATS_TEST_NUMBER" -eq 1 ];
+  enable_fail_fast_mode
+  if ! check_for_blog_url
   then
-    >&2 echo "INFO: Creating test environment..."
-    make deploy_infrastructure
+    >&2 echo "ERROR: Please provide a blog URL to test against."
+    return 1
   fi
-  show_additional_error_info
 }
 
-teardown(){
-  number_of_tests=$(cat $BATS_TEST_FILENAME | grep -Ec '^@test')
-  >&2 echo "INFO: Destroying test environment..."
-  if [ "$BATS_TEST_NUMBER" -eq "$number_of_tests" ]; then
-    make terraform_destroy
-  fi
-  show_additional_error_info
+teardown() {
+  show_additional_error_info_when_test_fails
+  disable_fail_fast_mode
 }
 
-@test "Ensure that we can get the URI for our blog" {
-  make terraform_output VARIABLE_TO_GET=route53_dns_address
-  show_additional_error_info
+@test "Blog is reachable over HTTPS at $HUGO_BASE_URL" {
+  run curl --silent -o /dev/null --write-out "%{http_code}" "$HUGO_BASE_URL"
   [ "$status" -eq 0 ]
-  [ "$output" != "" ]
+  [ "$output" == 200 ]
 }
 
-@test "Ensure that our blog is visible online" {
-  blog_uri=$(make terraform_output VARIABLE_TO_GET=route53_dns_address)
-  run curl --location -vvv "$blog_uri"
-  show_additional_error_info
+@test "Blog on the internet renders successfully" {
+  run find_element_in_hugo_blog "<meta name=\"generator\" content=\"Hugo $HUGO_VERSION\" />" "$HUGO_BASE_URL"
   [ "$status" -eq 0 ]
 }
