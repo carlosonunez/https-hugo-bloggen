@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 load ../helpers/errors
 load ../helpers/fail_fast
+load ../helpers/html
 
 check_for_blog_url() {
   test "$HUGO_BASE_URL"
@@ -20,7 +21,7 @@ teardown() {
   disable_fail_fast_mode
 }
 
-@test "Blog is reachable over HTTPS at $HUGO_BASE_URL" {
+@test "Blog is reachable at $HUGO_BASE_URL" {
   run curl --silent -o /dev/null --write-out "%{http_code}" "$HUGO_BASE_URL"
   [ "$status" -eq 0 ]
   [ "$output" == 200 ]
