@@ -45,7 +45,7 @@ services:
     env_file: .env
     environment:
       - S3_BUCKET
-    command: s3 cp --recursive /work/site/ "s3://${S3_BUCKET}/"
+    command: s3 cp --recursive /work/site/public "s3://${S3_BUCKET}/"
 
   gomplate:
     image: hairyhenderson/gomplate
