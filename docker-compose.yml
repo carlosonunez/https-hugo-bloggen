@@ -65,6 +65,19 @@ services:
       - "--out"
       - terraform.tfvars
 
+  generate-terraform-backend:
+    extends: gomplate
+    env_file: .env
+    volumes:
+      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "$PWD/.env:/.env"
+    working_dir: /work
+    command:
+      - "--file"
+      - backend.tf.tmpl
+      - "--out"
+      - backend.tf
+
   generate-terraform-backend-vars:
     extends: gomplate
     env_file: .env
@@ -77,6 +90,26 @@ services:
       - backend.tfvars.tmpl
       - "--out"
       - backend.tfvars
+
+  generate-terraform-unit-test-tfvars:
+    extends: gomplate
+    env_file: .env.test
+    volumes:
+      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "$PWD/.env.test:/.env"
+    working_dir: /work
+    command:
+      - "--file"
+      - terraform.tfvars.tmpl
+      - "--out"
+      - terraform.tfvars
+
+  generate-terraform-unit-test-backend:
+    volumes:
+      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "$PWD/tests:/tests"
+    image: alpine
+    command: "cp /tests/fixtures/backend.tf /work/backend.tf"
 
   generate-hugo-configs:
     extends: gomplate

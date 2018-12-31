@@ -1,6 +1,6 @@
+DECORATOR := **************
 DNS_RETRY_LIMIT_SECONDS ?= 60
 DOTENV_S3_BUCKET ?= $(shell cat .env_info)
-REINITIALIZE_TERRAFORM_FOR_UNIT_TESTS ?= false
 SHELL := /usr/bin/env bash
 TEST_RESULTS_FILE := $(shell mktemp /tmp/test-results-XXXXXXXXX)
 TEST_TIMER_FILE := $(shell mktemp /tmp/test-timer-XXXXXXXXX)
@@ -23,6 +23,7 @@ endif
 create_env:
 	sed 's/ #.*$$//; /^#/d; /^$$/d' env.example > .env;
 
+get_test_env: _get_test_env_vars_locally
 get_integration_env: _get_integration_env_vars_from_s3
 get_production_env: _get_production_env_vars_from_s3
 update_integration_env: _upload_integration_env_vars_to_s3
@@ -31,7 +32,7 @@ update_production_env: _upload_production_env_vars_to_s3
 .PHONY: test
 test: unit integration
 
-.PHONY: unit integration
+.PHONY: unit integration deploy
 
 unit: \
 	start_unit_tests \
@@ -48,12 +49,18 @@ integration: \
 	integration_teardown \
 	end_integration_tests
 
+deploy: \
+	_get_production_env_vars_from_s3 \
+	_set_up_remote_environment \
+	_deploy_blog_to_s3 \
+	_wait_for_dns_to_catch_up
+
 .PHONY: start_%_tests end_%_tests
 
 start_%_tests:
 	test_type=$$(echo "$@" | sed 's/start_\(.*\)_tests/\U\1/'); \
 	date +%s > $(TEST_TIMER_FILE); \
-	>&2 printf "%-30s%s%30s\n" "---" "RUNNING $$test_type TESTS" "---"; \
+	>&2 printf "%-30s%s%30s\n" "$(DECORATOR)" "RUNNING $$test_type TESTS" "$(DECORATOR)"; \
 
 end_%_tests:
 	test_end_time=$$(date +%s); \
@@ -65,16 +72,16 @@ end_%_tests:
 	test_result=$$(sed '$$!d' $(TEST_RESULTS_FILE)); \
 	rm -f $(TEST_RESULTS_FILE); \
 	echo "$$test_output"; \
-	>&2 printf "%-20s%s%20s\n" "---" "$$test_type TESTS FINISHED IN APPROX. $$test_duration SECONDS" "---"; \
+	>&2 printf "%-20s%s%20s\n" "$(DECORATOR)" "$$test_type TESTS FINISHED IN APPROX. $$test_duration SECONDS" "$(DECORATOR)"; \
 	exit "$$test_result"
 
 .PHONY: unit_setup integration_setup remove_generated_static_content
 
-ifeq ($(REINITIALIZE_TERRAFORM_FOR_UNIT_TESTS),true)
-unit_setup:  generate_terraform_vars terraform_init _remove_generated_static_content
-else
-unit_setup:  _remove_generated_static_content
-endif
+unit_setup: \
+	_get_test_env_vars_locally \
+	generate_terraform_vars_for_unit_tests \
+	terraform_init \
+	_remove_generated_static_content
 
 integration_setup:  \
 	_get_integration_env_vars_from_s3 \
@@ -120,9 +127,25 @@ terraform_%:
 	action=$$(echo "$@" | sed 's/terraform_//'); \
 	$(DOCKER_COMPOSE_COMMAND) run --rm terraform $$action
 
+generate_terraform_vars_for_unit_tests:
+	$(DOCKER_COMPOSE_COMMAND) run --rm generate-terraform-unit-test-tfvars && \
+	$(DOCKER_COMPOSE_COMMAND) run --rm generate-terraform-unit-test-backend
+
 generate_terraform_vars:
 	$(DOCKER_COMPOSE_COMMAND) run --rm generate-terraform-tfvars && \
+	$(DOCKER_COMPOSE_COMMAND) run --rm generate-terraform-backend && \
 	$(DOCKER_COMPOSE_COMMAND) run --rm generate-terraform-backend-vars
+
+.PHONY: _get_%_env_vars_locally
+_get_%_env_vars_locally:
+	environment_name=$$(echo "$@" | cut -f3 -d _); \
+	file_to_find=$$PWD/.env.$$environment_name; \
+	if [ ! -f "$$file_to_find" ]; \
+	then \
+		>&2 echo "ERROR: $$file_to_find not found."; \
+		exit 1; \
+	fi; \
+	cp "$$file_to_find" .env
 
 .PHONY: _deploy_blog_to_s3 _remove_hugo_blog_from_s3 _get_%_env_vars_from_s3 _upload_%_env_vars_to_s3
 _deploy_blog_to_s3:
