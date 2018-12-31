@@ -1,3 +1,7 @@
+variable "environment_name" {
+  description = "The name of the environment being provisioned; used in comments and tags."
+}
+
 variable "aws_region" {
   description = "The region to use for your AWS resources."
 }
@@ -62,4 +66,8 @@ variable "certificate_common_name" {
 
 variable "certificate_validity_period_in_days" {
   description = "The number of days the certificate provisioned is valid for."
+}
+
+variable "lets_encrypt_acme_server_url" {
+  description = "The ACME directory URL to use for requesting and provisioning certificates."
 }

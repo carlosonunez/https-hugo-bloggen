@@ -9,4 +9,5 @@ module "vpc" {
   name = "vpc"
   public_subnets = "${var.public_vpc_subnet_cidrs}"
   private_subnets = "${var.private_vpc_subnet_cidrs}"
+  tags = "${local.default_tags}"
 }

@@ -1,9 +1,11 @@
 resource "aws_cloudfront_origin_access_identity" "blog_access" {
   count = "${var.enable_cloudfront_cdn}"
+  comment = "Environment: ${var.environment_name}"
 }
 
 resource "aws_cloudfront_distribution" "blog" {
   count = "${var.enable_cloudfront_cdn}"
+  tags = "${local.default_tags}"
   origin {
     domain_name =  "${aws_s3_bucket.blog.bucket_regional_domain_name}"
     origin_id = "${local.s3_bucket_origin_id}"
@@ -38,5 +40,6 @@ resource "aws_cloudfront_distribution" "blog" {
   price_class = "PriceClass_100"
   viewer_certificate {
     acm_certificate_arn = "${aws_acm_certificate.aws_managed_https_certificate.arn}"
+    ssl_support_method = "sni-only"
   } 
 }

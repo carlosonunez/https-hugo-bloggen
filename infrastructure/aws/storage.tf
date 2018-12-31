@@ -13,6 +13,7 @@ data "aws_iam_policy_document" "make_website_world_readable" {
 
 resource "aws_s3_bucket" "blog" {
   bucket = "${local.s3_bucket_name}"
+  tags = "${local.default_tags}"
   acl = "public-read"
   policy = "${data.aws_iam_policy_document.make_website_world_readable.json}"
   website {

@@ -4,7 +4,7 @@
 {{- $value := ( . | strings.ReplaceAll $original_key "" | regexp.Replace "^=" "" ) -}}
 {{- if ( $value | regexp.Match "^[[:punct:]].*[[:punct:]]$" ) -}}
 {{- $key }} = {{ $value -}}
-{{- else if ( $value | regexp.Match "^([0-9]+|false)$" ) -}}
+{{- else if ( $value | regexp.Match "^([0-9]+|false|true)$" ) -}}
 {{- $key }} = {{ $value -}}
 {{- else -}}
 {{- $key }} = "{{ $value -}}"
@@ -14,6 +14,7 @@
 aws_access_key = "{{ getenv "AWS_ACCESS_KEY_ID" }}"
 aws_secret_key = "{{ getenv "AWS_SECRET_ACCESS_KEY" }}"
 aws_region = "{{ getenv "AWS_REGION" "us-east-1" }}"
+environment_name = "{{ getenv "ENVIRONMENT_NAME" }}"
 {{- range (file.Read "/.env" | regexp.FindAll "(TF|HUGO)_.*=.*") }}
 {{ template "create_terraform_key_value" . }}
 {{- end }}

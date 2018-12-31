@@ -8,4 +8,8 @@ locals {
   s3_bucket_name = "${local.blog_fqdn_requested}"
   s3_bucket_origin_id = "carlos-blog"
   route53_record_name = "${replace(local.blog_fqdn_requested, ".${var.route53_domain_name}","")}"
+  default_tags = {
+    Environment = "${var.environment_name}"
+    "Blog URL" = "${var.hugo_base_url}"
+  }
 }
