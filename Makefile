@@ -1,11 +1,16 @@
-ifneq ($(VERBOSE),true)
-MAKEFLAGS += --silent
-endif
-SHELL := /usr/bin/env bash
-DOTENV_S3_BUCKET ?= $(shell cat .env_info)
 DNS_RETRY_LIMIT_SECONDS ?= 60
+DOTENV_S3_BUCKET ?= $(shell cat .env_info)
+REINITIALIZE_TERRAFORM_FOR_UNIT_TESTS ?= false
+SHELL := /usr/bin/env bash
 TEST_RESULTS_FILE := $(shell mktemp /tmp/test-results-XXXXXXXXX)
 TEST_TIMER_FILE := $(shell mktemp /tmp/test-timer-XXXXXXXXX)
+VERBOSE ?= false
+ifneq ($(VERBOSE),true)
+MAKEFLAGS += --silent
+DOCKER_COMPOSE_COMMAND := 2>/dev/null docker-compose --log-level CRITICAL
+else
+DOCKER_COMPOSE_COMMAND := docker-compose --log-level INFO
+endif
 
 .PHONY: \
   create_env \
@@ -65,7 +70,11 @@ end_%_tests:
 
 .PHONY: unit_setup integration_setup remove_generated_static_content
 
+ifeq ($(REINITIALIZE_TERRAFORM_FOR_UNIT_TESTS),true)
+unit_setup:  generate_terraform_vars terraform_init _remove_generated_static_content
+else
 unit_setup:  _remove_generated_static_content
+endif
 
 integration_setup:  \
 	_get_integration_env_vars_from_s3 \
@@ -87,7 +96,7 @@ integration_teardown:  \
 run_hugo_%_tests:
 	-tests_to_run=$$(echo "$@" | sed 's/run_hugo_\([a-zA-Z]\+\)_tests/\1/'); \
 	tests_to_run_upcase=$$(echo "$$tests_to_run" | tr a-z A-Z); \
-	2>/dev/null docker-compose --log-level ERROR run --rm "hugo-$$tests_to_run-tests" > $(TEST_RESULTS_FILE); \
+	$(DOCKER_COMPOSE_COMMAND) run --rm "hugo-$$tests_to_run-tests" > $(TEST_RESULTS_FILE); \
 	echo "$$?" >> $(TEST_RESULTS_FILE)
 
 .PHONY: \
@@ -104,30 +113,27 @@ _set_up_remote_environment: generate_terraform_vars terraform_init terraform_app
 _tear_down_remote_environment: terraform_destroy
 
 _tear_down_local_environment:
-	2>/dev/null docker-compose --log-level ERROR down
+	$(DOCKER_COMPOSE_COMMAND) down
 
 .PHONY: terraform_% generate_terraform_vars
 terraform_%:
 	action=$$(echo "$@" | sed 's/terraform_//'); \
-	2>/dev/null docker-compose --log-level ERROR run --rm terraform $$action
+	$(DOCKER_COMPOSE_COMMAND) run --rm terraform $$action
 
 generate_terraform_vars:
-	2>/dev/null docker-compose --log-level ERROR run --rm generate-terraform-tfvars && \
-	2>/dev/null docker-compose --log-level ERROR run --rm generate-terraform-backend-vars
+	$(DOCKER_COMPOSE_COMMAND) run --rm generate-terraform-tfvars && \
+	$(DOCKER_COMPOSE_COMMAND) run --rm generate-terraform-backend-vars
 
 .PHONY: _deploy_blog_to_s3 _remove_hugo_blog_from_s3 _get_%_env_vars_from_s3 _upload_%_env_vars_to_s3
 _deploy_blog_to_s3:
-	export S3_BUCKET=$$(2>/dev/null docker-compose --log-level ERROR run --rm terraform output blog_bucket_name | tr -d '\r'); \
-	2>/dev/null docker-compose run --rm hugo && \
-		S3_BUCKET="$${S3_BUCKET?Please provide a S3 bucket.}" 2>/dev/null docker-compose \
-			--log-level ERROR \
-			run --rm \
-			deploy-hugo-to-s3
+	export S3_BUCKET=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_bucket_name | tr -d '\r'); \
+	$(DOCKER_COMPOSE_COMMAND) run --rm hugo && \
+		S3_BUCKET="$${S3_BUCKET?Please provide a S3 bucket.}" $(DOCKER_COMPOSE_COMMAND) run --rm deploy-hugo-to-s3
 
 _remove_hugo_blog_from_s3:
-	export S3_BUCKET=$$(2>/dev/null docker-compose --log-level ERROR run --rm terraform output blog_bucket_name | tr -d '\r'); \
+	export S3_BUCKET=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_bucket_name | tr -d '\r'); \
 	S3_BUCKET="$${S3_BUCKET?Please provide a S3 bucket.}" \
-		2>/dev/null docker-compose --log-level ERROR run --rm remove-hugo-from-s3
+		$(DOCKER_COMPOSE_COMMAND) run --rm remove-hugo-from-s3
 
 _get_%_env_vars_from_s3:
 	touch .env && \
@@ -142,7 +148,7 @@ _get_%_env_vars_from_s3:
 	fi; \
 	>&2 echo "INFO: Fetching environment vars for [$$environment_name] from S3"; \
 	ENVIRONMENT_NAME=$$environment_name S3_BUCKET=$$s3_bucket \
-		2>/dev/null docker-compose --log-level ERROR run --rm "$$verb-dotenv-file-$$direction-s3"
+		$(DOCKER_COMPOSE_COMMAND) run --rm "$$verb-dotenv-file-$$direction-s3"
 
 _upload_%_env_vars_to_s3:
 	s3_bucket=$(DOTENV_S3_BUCKET); \
@@ -156,11 +162,11 @@ _upload_%_env_vars_to_s3:
 	fi; \
 	>&2 echo "INFO: Updating environment vars for [$$environment_name] from S3"; \
 	ENVIRONMENT_NAME=$$environment_name S3_BUCKET=$$s3_bucket \
-		2>/dev/null docker-compose --log-level ERROR run --rm "$$verb-dotenv-file-$$direction-s3"
+		$(DOCKER_COMPOSE_COMMAND) run --rm "$$verb-dotenv-file-$$direction-s3"
 
 .PHONY: _wait_for_dns_to_catch_up 
 _wait_for_dns_to_catch_up:
-	blog_url=$$(2>/dev/null docker-compose --log-level ERROR run --rm terraform output blog_url | tr -d '\r'); \
+	blog_url=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_url | tr -d '\r'); \
 	for i in $$(seq 1 $(DNS_RETRY_LIMIT_SECONDS)); \
 	do \
 		if host $$blog_url &>/dev/null; \

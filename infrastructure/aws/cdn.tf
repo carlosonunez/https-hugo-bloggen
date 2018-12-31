@@ -37,6 +37,6 @@ resource "aws_cloudfront_distribution" "blog" {
   }
   price_class = "PriceClass_100"
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn = "${aws_acm_certificate.aws_managed_https_certificate.arn}"
   } 
 }

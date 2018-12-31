@@ -51,3 +51,15 @@ blog loading times. Disabling this for tests is recommended, as it can take
 30 minutes for a distribution to delete itself.
 EOF
 }
+
+variable "certificate_registration_email_address" {
+  description = "Email address to use for the certificate registered on your behalf."
+}
+
+variable "certificate_common_name" {
+  description = "The common name to apply onto the certificate."
+}
+
+variable "certificate_validity_period_in_days" {
+  description = "The number of days the certificate provisioned is valid for."
+}
