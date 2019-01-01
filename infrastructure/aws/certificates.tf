@@ -1,4 +1,10 @@
-resource "tls_private_key" "lets_encrypt_account_key" {
+resource "tls_private_key" "lets_encrypt_account_key_nonprod" {
+  count = "${var.environment_name == "production" ? 0 : 1}"
+  algorithm = "RSA"
+}
+
+resource "tls_private_key" "lets_encrypt_account_key_production" {
+  count = "${var.environment_name == "production" ? 1 : 0}"
   algorithm = "RSA"
 }
 
