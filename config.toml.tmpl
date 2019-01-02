@@ -1,12 +1,12 @@
-baseurl = "{{ getenv "HUGO_BASE_URL" }}"
-title = "{{ getenv "HUGO_TITLE" }}"
+baseurl = "{{ .Env.HUGO_BASE_URL }}"
+title = "{{ .Env.HUGO_TITLE }}"
 author = "{{ file.Read "AUTHOR" | strings.ReplaceAll "\n" "" }}"
-paginate = "{{ getenv "HUGO_PAGINATE" }}"
-theme = "{{ getenv "HUGO_THEME" }}"
+paginate = "{{ .Env.HUGO_PAGINATE }}"
+theme = "{{ path.Base (.Env.HUGO_THEME_REPO_URL)  }}"
 {{ if (file.Exists "global_keywords") -}}
 keywords = "{{ file.Read "global_keywords" | strings.ReplaceAll "\n" "," }}"
 {{- end }}
 [params]
-  description = "{{ getenv "HUGO_DESCRIPTION" }}"
+  description = "{{ .Env.HUGO_DESCRIPTION }}"
   dateFormatUse = "2018-01-01"
-  twitter = "{{ getenv "TWITTER_HANDLE" }}"
+  twitter = "{{ .Env.TWITTER_HANDLE }}"

@@ -39,10 +39,13 @@ theme = "arabica"
 
 [params]
     description = "A minimal Hugo theme"
+    dateFormatToUse = "2006-01-02"
     replaceGoogleFonts = "fonts.loli.net"
     twitter = "example"
     facebook = "example"
 ```
+
+You can add `image` front matter to a post, see [example post](https://github.com/nirocfz/arabica/blob/master/exampleSite/content/post/creating-a-new-theme.md).
 
 Thanks
 

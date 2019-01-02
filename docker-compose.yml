@@ -1,5 +1,15 @@
 version: "2.4"
 services:
+  fetch-hugo-theme:
+    image: alpine/git
+    volumes:
+      - "$PWD:/work"
+    working_dir: /work
+    env_file: .env
+    environment:
+      - HUGO_THEME_REPO_URL
+    entrypoint: "sh -c 'rm -rf themes && git clone $HUGO_THEME_REPO_URL themes/$$(basename $HUGO_THEME_REPO_URL)'"
+
   aws:
     image: anigeo/awscli
     environment:
@@ -40,8 +50,6 @@ services:
 
   deploy-hugo-to-s3:
     extends: aws
-    depends_on:
-      - generate-hugo-configs
     env_file: .env
     environment:
       - S3_BUCKET
@@ -150,11 +158,19 @@ services:
       - "${PWD}/config.toml:/site/config.toml"
     working_dir: /site
 
+  hugo-generate-static-files:
+    extends: hugo
+    env_file: .env
+    depends_on:
+      - generate-hugo-configs
+      - fetch-hugo-theme
+
   hugo-server:
     extends: hugo
     env_file: .env
     depends_on:
       - generate-hugo-configs
+      - fetch-hugo-theme
     command:
       - server
       - --baseURL
@@ -173,6 +189,7 @@ services:
       - generate-hugo-test-configs
     volumes:
       - "${PWD}/tests/fixtures/test_posts/:/site/content/post"
+      - "${PWD}/tests/fixtures/test_themes/:/site/themes"
     command:
       - server
       - --baseURL

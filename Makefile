@@ -164,10 +164,17 @@ _get_%_env_vars_locally:
 
 .PHONY: _deploy_blog_to_s3 _remove_hugo_blog_from_s3 _get_%_env_vars_from_s3 _upload_%_env_vars_to_s3
 _deploy_blog_to_s3:
-	export S3_BUCKET=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_bucket_name | tr -d '\r'); \
-	export INDEX_HTML_FILE=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output index_html_name | tr -d '\r'); \
-	export ERROR_HTML_FILE=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output error_html_name | tr -d '\r'); \
-	$(DOCKER_COMPOSE_COMMAND) run --rm hugo && \
+	terraform_output=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output | tr -d $$'\r'); \
+	export S3_BUCKET=$$(echo "$$terraform_output" | grep -r blog_bucket_name | sed 's/.*blog_bucket_name = //'); \
+	export INDEX_HTML_FILE=$$(echo "$$terraform_output" | grep -r index_html_name| sed 's/.*index_html_name = //'); \
+	export ERROR_HTML_FILE=$$(echo "$$terraform_output" | grep -r error_html_name| sed 's/.*error_html_name = //'); \
+	$(DOCKER_COMPOSE_COMMAND) run --rm fetch-hugo-theme && \
+	$(DOCKER_COMPOSE_COMMAND) run --rm hugo-generate-static-files && \
+		if [ ! -f site/public/index.html ] || [ ! -f site/public/404.html ]; \
+		then \
+			>&2 echo "ERROR: Site was not properly generated."; \
+			exit 1; \
+		fi; \
 		mv site/public/index.html "site/public/$$INDEX_HTML_FILE" && \
 		mv site/public/404.html "site/public/$$ERROR_HTML_FILE" && \
 		S3_BUCKET="$${S3_BUCKET?Please provide a S3 bucket.}" $(DOCKER_COMPOSE_COMMAND) run --rm deploy-hugo-to-s3
@@ -209,8 +216,9 @@ _upload_%_env_vars_to_s3:
 		exit 1; \
 	fi; \
 	>&2 echo "INFO: Updating environment vars for [$$environment_name] from S3"; \
-	cat .env | egrep -v "^COMMIT_SHA" > .env && \
-	ENVIRONMENT_NAME=$$environment_name S3_BUCKET=$$s3_bucket \
+	sed -i '/^COMMIT_SHA/d' .env && \
+		ENVIRONMENT_NAME=$$environment_name \
+		S3_BUCKET=$$s3_bucket \
 		$(DOCKER_COMPOSE_COMMAND) run --rm "$$verb-dotenv-file-$$direction-s3"
 
 .PHONY: _wait_for_dns_to_catch_up
