@@ -4,6 +4,7 @@ DOTENV_S3_BUCKET ?= $(shell cat .env_info)
 SHELL := /usr/bin/env bash
 TEST_RESULTS_FILE := $(shell mktemp /tmp/test-results-XXXXXXXXX)
 TEST_TIMER_FILE := $(shell mktemp /tmp/test-timer-XXXXXXXXX)
+COMMIT_SHA := $(shell git rev-parse HEAD | cut -c8)
 VERBOSE ?= false
 ifneq ($(VERBOSE),true)
 MAKEFLAGS += --silent
@@ -32,7 +33,7 @@ update_production_env: _upload_production_env_vars_to_s3
 .PHONY: test
 test: unit integration
 
-.PHONY: unit integration deploy
+.PHONY: unit integration deploy destroy
 
 unit: \
 	start_unit_tests \
@@ -49,11 +50,22 @@ integration: \
 	integration_teardown \
 	end_integration_tests
 
+production_tests: \
+	start_production_tests \
+	run_hugo_integration_tests \
+	end_production_tests
+
 deploy: \
 	_get_production_env_vars_from_s3 \
 	_set_up_remote_environment \
 	_deploy_blog_to_s3 \
-	_wait_for_dns_to_catch_up
+	_wait_for_dns_to_catch_up \
+	production_tests
+
+destroy: \
+	_remove_hugo_blog_from_s3 \
+	_set_up_remote_environment \
+	terraform_destroy
 
 .PHONY: start_%_tests end_%_tests
 
@@ -145,12 +157,18 @@ _get_%_env_vars_locally:
 		>&2 echo "ERROR: $$file_to_find not found."; \
 		exit 1; \
 	fi; \
-	cp "$$file_to_find" .env
+	cp "$$file_to_find" .env; \
+	echo "COMMIT_SHA=$(COMMIT_SHA)" >> .env
+
 
 .PHONY: _deploy_blog_to_s3 _remove_hugo_blog_from_s3 _get_%_env_vars_from_s3 _upload_%_env_vars_to_s3
 _deploy_blog_to_s3:
 	export S3_BUCKET=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_bucket_name | tr -d '\r'); \
+	export INDEX_HTML_FILE=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output index_html_name | tr -d '\r'); \
+	export ERROR_HTML_FILE=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output error_html_name | tr -d '\r'); \
 	$(DOCKER_COMPOSE_COMMAND) run --rm hugo && \
+		mv site/public/index.html site/public/$$INDEX_HTML_FILE && \
+		mv site/public/error.html site/public/$$ERROR_HTML_FILE && \
 		S3_BUCKET="$${S3_BUCKET?Please provide a S3 bucket.}" $(DOCKER_COMPOSE_COMMAND) run --rm deploy-hugo-to-s3
 
 _remove_hugo_blog_from_s3:
@@ -171,9 +189,15 @@ _get_%_env_vars_from_s3:
 	fi; \
 	>&2 echo "INFO: Fetching environment vars for [$$environment_name] from S3"; \
 	ENVIRONMENT_NAME=$$environment_name S3_BUCKET=$$s3_bucket \
-		$(DOCKER_COMPOSE_COMMAND) run --rm "$$verb-dotenv-file-$$direction-s3"
+		$(DOCKER_COMPOSE_COMMAND) run --rm "$$verb-dotenv-file-$$direction-s3" && \
+	echo "COMMIT_SHA=$(COMMIT_SHA)" >> .env
 
 _upload_%_env_vars_to_s3:
+	if [ ! -f .env ]; \
+	then \
+		>&2 echo "ERROR: Please provide a .env to upload."; \
+		exit 1; \
+	fi; \
 	s3_bucket=$(DOTENV_S3_BUCKET); \
 	verb=$$(echo "$@" | cut -f2 -d _); \
 	environment_name=$$(echo "$@" | cut -f3 -d _); \
@@ -184,10 +208,11 @@ _upload_%_env_vars_to_s3:
 		exit 1; \
 	fi; \
 	>&2 echo "INFO: Updating environment vars for [$$environment_name] from S3"; \
+	cat .env | egrep -v "^COMMIT_SHA" > .env && \
 	ENVIRONMENT_NAME=$$environment_name S3_BUCKET=$$s3_bucket \
 		$(DOCKER_COMPOSE_COMMAND) run --rm "$$verb-dotenv-file-$$direction-s3"
 
-.PHONY: _wait_for_dns_to_catch_up 
+.PHONY: _wait_for_dns_to_catch_up
 _wait_for_dns_to_catch_up:
 	blog_url=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_url | tr -d '\r'); \
 	for i in $$(seq 1 $(DNS_RETRY_LIMIT_SECONDS)); \

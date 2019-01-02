@@ -17,7 +17,7 @@ resource "aws_s3_bucket" "blog" {
   acl = "public-read"
   policy = "${data.aws_iam_policy_document.make_website_world_readable.json}"
   website {
-    index_document = "index.html"
-    error_document = "error.html"
+    index_document = "${local.index_html_file}"
+    error_document = "${local.error_html_file}"
   }
 }

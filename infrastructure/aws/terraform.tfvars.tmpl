@@ -15,6 +15,7 @@ aws_access_key = "{{ getenv "AWS_ACCESS_KEY_ID" }}"
 aws_secret_key = "{{ getenv "AWS_SECRET_ACCESS_KEY" }}"
 aws_region = "{{ getenv "AWS_REGION" "us-east-1" }}"
 environment_name = "{{ getenv "ENVIRONMENT_NAME" }}"
+blog_version_commit_sha = "{{ getenv "COMMIT_SHA" }}"
 {{- range (file.Read "/.env" | regexp.FindAll "(TF|HUGO)_.*=.*") }}
 {{ template "create_terraform_key_value" . }}
 {{- end }}

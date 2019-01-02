@@ -21,7 +21,7 @@ resource "aws_cloudfront_distribution" "blog" {
   }
 
   enabled = true
-  default_root_object = "index.html"
+  default_root_object = "${local.index_html_file}"
   default_cache_behavior {
     allowed_methods = [ "GET","POST","PUT","DELETE","PATCH","OPTIONS","HEAD"]
     cached_methods = [ "GET","HEAD" ]
@@ -32,14 +32,18 @@ resource "aws_cloudfront_distribution" "blog" {
         forward = "none"
       }
     }
-    viewer_protocol_policy = "allow-all"
+    viewer_protocol_policy = "redirect-to-https"
     min_ttl = 0
     default_ttl = 3600
     max_ttl = 86400
   }
+  custom_error_response {
+    error_code = 404
+    response_page_path = "${local.error_html_file}"
+  }
   price_class = "PriceClass_100"
   viewer_certificate {
-    acm_certificate_arn = "${aws_acm_certificate.aws_managed_https_certificate.arn}"
+    acm_certificate_arn = "${var.environment_name == "production" ? aws_acm_certificate.aws_managed_https_certificate_production.arn : aws_acm_certificate.aws_managed_https_certificate_nonprod.arn}"
     ssl_support_method = "sni-only"
   } 
 }

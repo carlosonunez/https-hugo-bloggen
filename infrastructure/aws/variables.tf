@@ -71,3 +71,7 @@ variable "certificate_validity_period_in_days" {
 variable "lets_encrypt_acme_server_url" {
   description = "The ACME directory URL to use for requesting and provisioning certificates."
 }
+
+variable "blog_version_commit_sha" {
+  description = "The blog's commit SHA."
+}

@@ -6,8 +6,19 @@ provider "aws" {
 }
 
 provider "acme" {
+  server_url = "https://invalid"
+}
+
+provider "acme" {
+  alias = "nonprod"
   version = "~> 1.0"
-  server_url = "${var.lets_encrypt_acme_server_url}"
+  server_url = "https://acme-v02-staging.api.letsencrypt.org/directory"
+}
+
+provider "acme" {
+  alias = "production"
+  version = "~> 1.0"
+  server_url = "https://acme-v02.api.letsencrypt.org/directory"
 }
 
 provider "tls" {
