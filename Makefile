@@ -4,7 +4,7 @@ DOTENV_S3_BUCKET ?= $(shell cat .env_info)
 SHELL := /usr/bin/env bash
 TEST_RESULTS_FILE := $(shell mktemp /tmp/test-results-XXXXXXXXX)
 TEST_TIMER_FILE := $(shell mktemp /tmp/test-timer-XXXXXXXXX)
-COMMIT_SHA := $(shell git rev-parse HEAD | cut -c8)
+COMMIT_SHA := $(shell git rev-parse HEAD | head -c8)
 VERBOSE ?= false
 ifneq ($(VERBOSE),true)
 MAKEFLAGS += --silent
