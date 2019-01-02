@@ -14,32 +14,6 @@ variable "aws_secret_key" {
   description = "The secret key to use."
 }
 
-variable "number_of_azs" {
-  description = "The number of availability zones to use."
-}
-
-variable "vpc_cidr" {
-  description = "The CIDR to assign to the VPC."
-}
-
-variable "private_vpc_subnet_cidrs" {
-  type = "list"
-  description = <<EOF
-CIDRs to use for private subnets created within the VPC.
-They must be within the CIDR declared by vpc_cidr, and they must equal
-the number of AZs requested by 'number_of_azs'
-EOF
-}
-
-variable "public_vpc_subnet_cidrs" {
-  type = "list"
-  description = <<EOF
-CIDRs to use for public subnets created within the VPC.
-They must be within the CIDR declared by vpc_cidr, and they must equal
-the number of AZs requested by 'number_of_azs'
-EOF
-}
-
 variable "hugo_base_url" {
   description = "The URL that Hugo is hosted from."
 }
