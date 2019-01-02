@@ -12,7 +12,7 @@ provider "acme" {
 provider "acme" {
   alias = "nonprod"
   version = "~> 1.0"
-  server_url = "https://acme-v02-staging.api.letsencrypt.org/directory"
+  server_url = "https://acme-staging-v02.api.letsencrypt.org/directory"
 }
 
 provider "acme" {

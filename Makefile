@@ -64,7 +64,8 @@ deploy: \
 
 destroy: \
 	_remove_hugo_blog_from_s3 \
-	_set_up_remote_environment \
+	generate_terraform_vars \
+	terraform_init \
 	terraform_destroy
 
 .PHONY: start_%_tests end_%_tests
@@ -167,8 +168,8 @@ _deploy_blog_to_s3:
 	export INDEX_HTML_FILE=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output index_html_name | tr -d '\r'); \
 	export ERROR_HTML_FILE=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output error_html_name | tr -d '\r'); \
 	$(DOCKER_COMPOSE_COMMAND) run --rm hugo && \
-		mv site/public/index.html site/public/$$INDEX_HTML_FILE && \
-		mv site/public/error.html site/public/$$ERROR_HTML_FILE && \
+		mv site/public/index.html "site/public/$$INDEX_HTML_FILE" && \
+		mv site/public/404.html "site/public/$$ERROR_HTML_FILE" && \
 		S3_BUCKET="$${S3_BUCKET?Please provide a S3 bucket.}" $(DOCKER_COMPOSE_COMMAND) run --rm deploy-hugo-to-s3
 
 _remove_hugo_blog_from_s3:

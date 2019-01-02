@@ -43,7 +43,8 @@ resource "aws_cloudfront_distribution" "blog" {
   }
   price_class = "PriceClass_100"
   viewer_certificate {
-    acm_certificate_arn = "${var.environment_name == "production" ? aws_acm_certificate.aws_managed_https_certificate_production.arn : aws_acm_certificate.aws_managed_https_certificate_nonprod.arn}"
+    count = "${var.environment_name == "production" ? 1 : 0}"
+    acm_certificate_arn = "${aws_acm_certificate.aws_managed_https_certificate.arn}"
     ssl_support_method = "sni-only"
   } 
 }

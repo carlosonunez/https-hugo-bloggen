@@ -2,8 +2,10 @@ baseurl = "{{ getenv "HUGO_BASE_URL" }}"
 title = "{{ getenv "HUGO_TITLE" }}"
 author = "{{ file.Read "AUTHOR" | strings.ReplaceAll "\n" "" }}"
 paginate = "{{ getenv "HUGO_PAGINATE" }}"
-theme = "arabica"
-
+theme = "{{ getenv "HUGO_THEME" }}"
+{{ if (file.Exists "global_keywords") -}}
+keywords = "{{ file.Read "global_keywords" | strings.ReplaceAll "\n" "," }}"
+{{- end }}
 [params]
   description = "{{ getenv "HUGO_DESCRIPTION" }}"
   dateFormatUse = "2018-01-01"

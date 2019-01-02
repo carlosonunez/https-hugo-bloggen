@@ -13,3 +13,11 @@ output "cloudfront_url" {
 output "blog_url" {
   value = "${aws_route53_record.blog.fqdn}"
 }
+
+output "index_html_name" {
+  value = "${local.index_html_file}"
+}
+
+output "error_html_name" {
+  value = "${local.error_html_file}"
+}
