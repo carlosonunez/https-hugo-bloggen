@@ -161,32 +161,13 @@ services:
   hugo-generate-static-files:
     extends: hugo
     env_file: .env
-    depends_on:
-      - generate-hugo-configs
-      - fetch-hugo-theme
-
-  hugo-server:
-    extends: hugo
-    env_file: .env
-    depends_on:
-      - generate-hugo-configs
-      - fetch-hugo-theme
-    command:
-      - server
-      - --baseURL
-      - "${HUGO_BASE_URL}"
-      - --bind
-      - "0.0.0.0"
-      - -p
-      - "8080"
-    ports:
-      - 8080:8080
 
   hugo-test-server:
     extends: hugo
     env_file: .env.test
     depends_on:
       - generate-hugo-test-configs
+      - fetch-hugo-theme
     volumes:
       - "${PWD}/tests/fixtures/test_posts/:/site/content/post"
       - "${PWD}/tests/fixtures/test_themes/:/site/themes"
@@ -225,7 +206,7 @@ services:
     command: /tests/integration
 
   terraform:
-    image: hashicorp/terraform
+    image: hashicorp/terraform:0.11.10
     volumes:
       - "${PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
     working_dir: /work
