@@ -234,7 +234,7 @@ _upload_%_env_vars_to_s3:
 		S3_BUCKET=$$s3_bucket \
 		$(DOCKER_COMPOSE_COMMAND) run --rm "$$verb-dotenv-file-$$direction-s3"
 
-.PHONY: _wait_for_dns_to_catch_up
+.PHONY: _wait_for_dns_to_catch_up _wait_for_cloudfront_to_become_ready
 _wait_for_dns_to_catch_up:
 	blog_url=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_url | tr -d '\r'); \
 	for i in $$(seq 1 $(DNS_RETRY_LIMIT_SECONDS)); \
@@ -247,3 +247,17 @@ _wait_for_dns_to_catch_up:
 	done; \
 	>&2 echo "ERROR: $$blog_url never came up."; \
 	exit 1;
+
+_wait_for_cloudfront_to_become_ready:
+	blog_url=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output cloudfront_url | tr -d '\r'); \
+	for i in $$(seq 1 $(DNS_RETRY_LIMIT_SECONDS)); \
+	do \
+		if nc -z $$blog_url 443 &>/dev/null; \
+		then \
+			exit 0; \
+		fi; \
+		>&2 echo "WARNING: $$blog_url is not up yet. (Attempt $$i/$(DNS_RETRY_LIMIT_SECONDS))"; \
+	done; \
+	>&2 echo "ERROR: $$blog_url never came up."; \
+	exit 1;
+
