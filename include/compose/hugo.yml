@@ -1,0 +1,90 @@
+version: "2.4"
+services:
+  fetch-hugo-theme:
+    image: alpine/git
+    volumes:
+      - "$PWD:/work"
+    working_dir: /work
+    env_file: .env
+    environment:
+      - HUGO_THEME_REPO_URL
+    entrypoint: "sh -c 'rm -rf themes && git clone $HUGO_THEME_REPO_URL themes/$$(basename $HUGO_THEME_REPO_URL)'"
+
+  hugo-generate-static-files:
+    extends: hugo
+    env_file: .env
+
+  hugo-test-server:
+    extends: hugo
+    env_file: .env.test
+    depends_on:
+      - generate-hugo-test-configs
+      - fetch-hugo-theme
+    volumes:
+      - "${PWD}/tests/fixtures/test_posts/:/site/content/post"
+      - "${PWD}/tests/fixtures/test_themes/:/site/themes"
+    command:
+      - server
+      - --baseURL
+      - "http://localhost"
+      - --bind
+      - "0.0.0.0"
+      - -p
+      - "8080"
+    ports:
+      - 8080:8080
+
+  hugo-unit-tests:
+    image: graze/bats
+    env_file: .env.test
+    depends_on:
+      - generate-hugo-test-configs
+      - hugo-test-server
+    links:
+      - hugo-test-server:hugo
+    volumes:
+      - "${PWD}/tests:/tests"
+    command: /tests/unit
+
+  hugo-integration-tests:
+    image: graze/bats
+    env_file: .env
+    environment:
+      - BLOG_URL
+    volumes:
+      - "${PWD}/tests:/tests"
+    command: /tests/integration
+
+  hugo-production-tests:
+    image: graze/bats
+    env_file: .env
+    environment:
+      - BLOG_URL
+      - CDN_URL
+    volumes:
+      - "${PWD}/tests:/tests"
+    command: /tests/production
+
+  generate-hugo-configs:
+    extends: gomplate
+    env_file: .env
+    volumes:
+      - "${PWD}:/work"
+    working_dir: /work
+    command:
+      - "--file"
+      - config.toml.tmpl
+      - "--out"
+      - config.toml
+
+  generate-hugo-test-configs:
+    extends: gomplate
+    env_file: .env.test
+    volumes:
+      - "${PWD}:/work"
+    working_dir: /work
+    command:
+      - "--file"
+      - config.toml.tmpl
+      - "--out"
+      - config.toml

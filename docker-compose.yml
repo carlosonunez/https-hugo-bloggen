@@ -1,15 +1,5 @@
 version: "2.4"
 services:
-  fetch-hugo-theme:
-    image: alpine/git
-    volumes:
-      - "$PWD:/work"
-    working_dir: /work
-    env_file: .env
-    environment:
-      - HUGO_THEME_REPO_URL
-    entrypoint: "sh -c 'rm -rf themes && git clone $HUGO_THEME_REPO_URL themes/$$(basename $HUGO_THEME_REPO_URL)'"
-
   aws:
     image: anigeo/awscli
     environment:
@@ -19,129 +9,10 @@ services:
     volumes:
       - "${PWD}:/work"
 
-  get-dotenv-file-from-s3:
-    extends: aws
-    environment:
-      - ENVIRONMENT_NAME
-      - S3_BUCKET
-    volumes:
-      - $PWD:/work
-    command: s3 cp s3://${S3_BUCKET}/${ENVIRONMENT_NAME}/.env /work/.env
-
-  upload-dotenv-file-to-s3:
-    extends: aws
-    environment:
-      - ENVIRONMENT_NAME
-      - S3_BUCKET
-    volumes:
-      - $PWD:/work
-    entrypoint: 
-      - sh
-      - "-c"
-      - "aws s3 mb \"s3://${S3_BUCKET}\" && aws s3 cp /work/.env \"s3://${S3_BUCKET}/${ENVIRONMENT_NAME}/.env\""
-
-  remove-hugo-from-s3:
-    extends: aws
-    env_file: .env
-    environment:
-      - S3_BUCKET
-    image: anigeo/awscli
-    command: s3 rm --recursive "s3://${S3_BUCKET}/"
-
-  deploy-hugo-to-s3:
-    extends: aws
-    env_file: .env
-    environment:
-      - S3_BUCKET
-    command: s3 cp --recursive /work/site/public "s3://${S3_BUCKET}/"
-
   gomplate:
     image: hairyhenderson/gomplate
     environment:
       - GOMPLATE_SUPPRESS_EMPTY=true
-
-  generate-terraform-tfvars:
-    extends: gomplate
-    env_file: .env
-    volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/.env:/.env"
-    working_dir: /work
-    command:
-      - "--file"
-      - terraform.tfvars.tmpl
-      - "--out"
-      - terraform.tfvars
-
-  generate-terraform-backend:
-    extends: gomplate
-    env_file: .env
-    volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/.env:/.env"
-    working_dir: /work
-    command:
-      - "--file"
-      - backend.tf.tmpl
-      - "--out"
-      - backend.tf
-
-  generate-terraform-backend-vars:
-    extends: gomplate
-    env_file: .env
-    volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/.env:/.env"
-    working_dir: /work
-    command:
-      - "--file"
-      - backend.tfvars.tmpl
-      - "--out"
-      - backend.tfvars
-
-  generate-terraform-unit-test-tfvars:
-    extends: gomplate
-    env_file: .env.test
-    volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/.env.test:/.env"
-    working_dir: /work
-    command:
-      - "--file"
-      - terraform.tfvars.tmpl
-      - "--out"
-      - terraform.tfvars
-
-  generate-terraform-unit-test-backend:
-    volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/tests:/tests"
-    image: alpine
-    command: "cp /tests/fixtures/backend.tf /work/backend.tf"
-
-  generate-hugo-configs:
-    extends: gomplate
-    env_file: .env
-    volumes:
-      - "${PWD}:/work"
-    working_dir: /work
-    command:
-      - "--file"
-      - config.toml.tmpl
-      - "--out"
-      - config.toml
-
-  generate-hugo-test-configs:
-    extends: gomplate
-    env_file: .env.test
-    volumes:
-      - "${PWD}:/work"
-    working_dir: /work
-    command:
-      - "--file"
-      - config.toml.tmpl
-      - "--out"
-      - config.toml
 
   hugo:
     build:
@@ -157,53 +28,6 @@ services:
       - "${PWD}/static/:/site/static"
       - "${PWD}/config.toml:/site/config.toml"
     working_dir: /site
-
-  hugo-generate-static-files:
-    extends: hugo
-    env_file: .env
-
-  hugo-test-server:
-    extends: hugo
-    env_file: .env.test
-    depends_on:
-      - generate-hugo-test-configs
-      - fetch-hugo-theme
-    volumes:
-      - "${PWD}/tests/fixtures/test_posts/:/site/content/post"
-      - "${PWD}/tests/fixtures/test_themes/:/site/themes"
-    command:
-      - server
-      - --baseURL
-      - "http://localhost"
-      - --bind
-      - "0.0.0.0"
-      - -p
-      - "8080"
-    ports:
-      - 8080:8080
-
-  hugo-unit-tests:
-    image: graze/bats
-    env_file: .env.test
-    depends_on:
-      - generate-hugo-test-configs
-      - hugo-test-server
-    links:
-      - hugo-test-server:hugo
-    volumes:
-      - "${PWD}/tests:/tests"
-    command: /tests/unit
-
-  hugo-integration-tests:
-    image: graze/bats
-    env_file: .env
-    environment:
-      - BLOG_URL
-    depends_on:
-      - generate-hugo-configs
-    volumes:
-      - "${PWD}/tests:/tests"
-    command: /tests/integration
 
   terraform:
     image: hashicorp/terraform:0.11.10
@@ -221,7 +45,3 @@ services:
       - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
       - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
 
-  terraform_debug:
-    extends: terraform
-    environment:
-      - TF_LOG=DEBUG
