@@ -19,15 +19,17 @@ resource "acme_certificate" "https_certificate" {
   dns_challenge {
     provider = "route53"
   }
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_acm_certificate" "aws_managed_https_certificate" {
-  count = "${var.environment_name == "production" ? 1 : 0}"
   tags = "${local.default_tags}"
   private_key = "${acme_certificate.https_certificate.private_key_pem}"
   certificate_body = "${acme_certificate.https_certificate.certificate_pem}"
   certificate_chain = "${acme_certificate.https_certificate.issuer_pem}"
   lifecycle {
-    create_before_destroy = true
+    prevent_destroy = true
   }
 }

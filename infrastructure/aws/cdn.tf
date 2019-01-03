@@ -39,12 +39,13 @@ resource "aws_cloudfront_distribution" "blog" {
   }
   custom_error_response {
     error_code = 404
-    response_page_path = "${local.error_html_file}"
+    response_code = 404
+    response_page_path = "/${local.error_html_file}"
   }
   price_class = "PriceClass_100"
   viewer_certificate {
-    count = "${var.environment_name == "production" ? 1 : 0}"
     acm_certificate_arn = "${aws_acm_certificate.aws_managed_https_certificate.arn}"
     ssl_support_method = "sni-only"
+    minimum_protocol_version = "TLSv1.1_2016"
   } 
 }
