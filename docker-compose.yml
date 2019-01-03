@@ -221,3 +221,7 @@ services:
       - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
       - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
 
+  terraform_debug:
+    extends: terraform
+    environment:
+      - TF_LOG=DEBUG
