@@ -18,5 +18,8 @@ resource "aws_route53_record" "aws_managed_https_certificate_validation_record" 
 resource "aws_acm_certificate_validation" "aws_managed_https_certificate" {
   certificate_arn         = "${aws_acm_certificate.aws_managed_https_certificate.arn}"
   validation_record_fqdns = ["${aws_route53_record.aws_managed_https_certificate_validation_record.fqdn}"]
+  timeouts {
+    create = "5m"
+  }
 }
 

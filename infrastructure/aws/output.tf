@@ -6,7 +6,7 @@ output "blog_bucket_url" {
   value = "${aws_s3_bucket.blog.website_endpoint}"
 }
 
-output "cloudfront_url" {
+output "cdn_url" {
   value = "${element(concat(aws_cloudfront_distribution.blog.*.domain_name, list("none")), 0)}"
 }
 
