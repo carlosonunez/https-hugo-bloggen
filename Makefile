@@ -1,6 +1,7 @@
 DECORATOR := **************
 SHELL := /usr/bin/env bash
 COMMIT_SHA := $(shell git rev-parse HEAD | head -c8)
+PRODUCTION_TIMEOUT_SECONDS ?= 300
 VERBOSE ?= false
 ifneq ($(VERBOSE),true)
 MAKEFLAGS += --silent
@@ -26,24 +27,37 @@ integration: \
 	integration_teardown \
 	end_integration_tests
 
-production_tests: \
-	start_production_tests \
-	run_hugo_integration_tests \
-	end_production_tests
-
 deploy: \
 	get_production_env_vars_from_s3 \
 	set_up_infrastructure \
-	version_index_and_error_files \
+	version_hugo_index_and_error_files \
 	deploy_blog_to_s3 \
 	wait_for_dns_to_catch_up \
-	production_tests
+	run_production_tests
 
 destroy: \
 	remove_hugo_blog_from_s3 \
 	generate_terraform_vars \
 	terraform_init \
 	terraform_destroy
+
+.PHONY: run_production_tests
+
+run_production_tests:
+	$(MAKE) start_production_tests && \
+	for attempt in $$(seq 1 $(PRODUCTION_TIMEOUT_SECONDS)); \
+	do \
+		>&2 echo "INFO: Attempt $$attempt out of $(PRODUCTION_TIMEOUT_SECONDS)"; \
+		if $(MAKE) run_hugo_production_tests; \
+		then \
+			$(MAKE) end_production_tests; \
+			exit 0; \
+		fi; \
+		sleep 1;  \
+	done; \
+	>&2 echo "ERROR: Production site never came up."; \
+	$(MAKE) end_production_tests; \
+	exit 1;
 
 .PHONY: unit_setup integration_setup
 
@@ -56,7 +70,7 @@ unit_setup: \
 integration_setup:  \
 	get_integration_env_vars_from_s3 \
 	set_up_infrastructure \
-	version_index_and_error_files \
+	version_hugo_index_and_error_files \
 	deploy_blog_to_s3 \
 	wait_for_dns_to_catch_up
 
