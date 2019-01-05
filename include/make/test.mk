@@ -1,6 +1,7 @@
 #!/usr/bin/env make
-export TEST_RESULTS_FILE ?= $(shell mktemp /tmp/test-results-XXXXXXXXX)
-export TEST_TIMER_FILE ?= $(shell mktemp /tmp/test-timer-XXXXXXXXX)
+DECORATOR := **************
+TEST_RESULTS_FILE := $(shell mktemp /tmp/test-results-XXXXXXXXX)
+TEST_TIMER_FILE := $(shell mktemp /tmp/test-timer-XXXXXXXXX)
 
 .PHONY: start_%_tests end_%_tests
 
@@ -21,5 +22,3 @@ end_%_tests:
 	rm -f $(TEST_TIMER_FILE); \
 	echo "$$test_output"; \
 	>&2 printf "%-20s%s%20s\n" "$(DECORATOR)" "$$test_type TESTS FINISHED IN APPROX. $$test_duration SECONDS" "$(DECORATOR)"; \
-	exit "$$test_result"
-

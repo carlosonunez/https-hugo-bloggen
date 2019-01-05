@@ -19,7 +19,7 @@ generate_terraform_vars:
 	set_up_infrastructure \
 	tear_down_infrastructure
 
-initialize_terraform: generate_terraform_vars terraform_init terraform_refresh
+initialize_terraform: generate_terraform_vars terraform_init
 
 set_up_infrastructure: initialize_terraform terraform_apply
 

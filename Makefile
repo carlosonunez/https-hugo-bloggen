@@ -1,10 +1,11 @@
-DECORATOR := **************
 SHELL := /usr/bin/env bash -o pipefail
-COMMIT_SHA := $(shell git rev-parse HEAD | head -c8)
-PRODUCTION_TIMEOUT_SECONDS ?= 300
-VERBOSE ?= false
-ifneq ($(VERBOSE),true)
 MAKEFLAGS += --silent
+COMMIT_SHA := $(shell git rev-parse HEAD | head -c8)
+VERBOSE ?= false
+INTEGRATION_TEST_TIMEOUT_IN_SECONDS := 150
+PRODUCTION_TEST_TIMEOUT_IN_SECONDS := 300
+
+ifneq ($(VERBOSE),true)
 endif
 include include/make/*.mk
 
@@ -20,10 +21,11 @@ unit: \
 	unit_teardown \
 	end_unit_tests
 
+integration: TEST_TIMEOUT_IN_SECONDS = $(INTEGRATION_TEST_TIMEOUT_IN_SECONDS)
 integration: \
 	start_integration_tests \
 	integration_setup \
-	run_hugo_integration_tests \
+	run_hugo_integration_tests_with_timeout \
 	integration_teardown \
 	end_integration_tests
 
@@ -50,21 +52,11 @@ provide the name of the environment to tear down."; \
 
 .PHONY: run_production_tests
 
-run_production_tests:
-	$(MAKE) start_production_tests && \
-	for attempt in $$(seq 1 $(PRODUCTION_TIMEOUT_SECONDS)); \
-	do \
-		>&2 echo "INFO: Attempt $$attempt out of $(PRODUCTION_TIMEOUT_SECONDS)"; \
-		if $(MAKE) run_hugo_production_tests; \
-		then \
-			$(MAKE) end_production_tests; \
-			exit 0; \
-		fi; \
-		sleep 1;  \
-	done; \
-	>&2 echo "ERROR: Production site never came up."; \
-	$(MAKE) end_production_tests; \
-	exit 1;
+run_production_tests: TEST_TIMEOUT_IN_SECONDS = $(PRODUCTION_TEST_TIMEOUT_IN_SECONDS)
+run_production_tests: \
+	start_production_tests \
+	run_hugo_production_tests_with_timeout \
+	end_production_tests
 
 .PHONY: unit_setup integration_setup
 

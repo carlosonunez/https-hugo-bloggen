@@ -1,6 +1,7 @@
 #!/usr/bin/env make
 .PHONY: \
 	run_hugo_%_tests \
+	run_hugo_%_tests_with_timeout \
 	version_hugo_index_and_error_files \
 	remove_generated_static_content
 	
@@ -15,6 +16,17 @@ run_hugo_%_tests:
 	test_result=$$?; \
 	echo "$$test_result" > $(TEST_RESULTS_FILE); \
 	exit "$$test_result";
+
+run_hugo_%_tests_with_timeout:
+	tests_to_run=$$(echo "$@" | sed 's/run_hugo_\([a-zA-Z]\+\)_tests.*/\1/'); \
+	for attempt in $$(seq 1 $(TEST_TIMEOUT_IN_SECONDS)); \
+	do \
+		>&2 echo "INFO: Attempt $$attempt out of $(TEST_TIMEOUT_IN_SECONDS)"; \
+		$(MAKE) run_hugo_$${tests_to_run}_tests && exit 0; \
+		sleep 1;  \
+	done; \
+	>&2 echo "ERROR: Production site never came up."; \
+	exit 1;
 
 version_hugo_index_and_error_files:
 	terraform_output=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output | tr -d $$'\r'); \
