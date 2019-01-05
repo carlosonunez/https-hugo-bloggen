@@ -15,10 +15,13 @@ generate_terraform_vars:
 	$(DOCKER_COMPOSE_COMMAND) run --rm generate-terraform-backend-vars
 
 .PHONY: \
+	initialize_terraform \
 	set_up_infrastructure \
 	tear_down_infrastructure
 
-set_up_infrastructure: generate_terraform_vars terraform_init terraform_apply
+initialize_terraform: generate_terraform_vars terraform_init terraform_refresh
 
-tear_down_infrastructure: terraform_destroy
+set_up_infrastructure: initialize_terraform terraform_apply
+
+tear_down_infrastructure: initialize_terraform terraform_destroy
 
