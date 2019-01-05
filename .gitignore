@@ -13,6 +13,7 @@
 *.tfstate*
 terraform.tfvars
 backend.tfvars
+backend.tf
 !terraform.tfvars.example
 .terraform
 .terraform_is_initialized
