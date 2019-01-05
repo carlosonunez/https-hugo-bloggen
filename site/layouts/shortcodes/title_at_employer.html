@@ -1,7 +1,0 @@
-{{ $title_at_employer := ( replace (getenv "CURRENT_EMPLOYER_TITLE") "\"" "" ) }}
-{{ $first_letter_of_title := ( substr ( $title_at_employer | lower ) 0 1 ) }}
-{{ $prefix := (string "a") }}
-{{ if or ( eq $first_letter_of_title "a" ) ( eq $first_letter_of_title "e" ) ( eq $first_letter_of_title "i" ) ( eq $first_letter_of_title "o" ) ( eq $first_letter_of_title "u" ) }}
-  {{ $prefix = (string "an") }}
-{{ end }}
-{{ $prefix }} {{ $title_at_employer }}

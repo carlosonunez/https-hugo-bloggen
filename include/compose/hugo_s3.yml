@@ -1,0 +1,16 @@
+version: "2.4"
+services:
+  remove-hugo-blog-from-s3:
+    extends: aws
+    env_file: .env
+    environment:
+      - S3_BUCKET
+    image: anigeo/awscli
+    command: s3 rm --recursive "s3://${S3_BUCKET}/"
+
+  deploy-hugo-blog-to-s3:
+    extends: aws
+    env_file: .env
+    environment:
+      - S3_BUCKET
+    command: s3 sync /work/site/public "s3://${S3_BUCKET}/"

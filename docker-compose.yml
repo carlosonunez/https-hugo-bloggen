@@ -1,0 +1,47 @@
+version: "2.4"
+services:
+  aws:
+    image: anigeo/awscli
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
+    volumes:
+      - "${PWD}:/work"
+
+  gomplate:
+    image: hairyhenderson/gomplate
+    environment:
+      - GOMPLATE_SUPPRESS_EMPTY=true
+
+  hugo:
+    build:
+      args:
+        - HUGO_VERSION=0.49
+      context: .
+    tty: true
+    volumes:
+      - "${PWD}/site:/site"
+      - "${PWD}/posts/:/site/content/post"
+      - "${PWD}/layouts/:/site/layouts"
+      - "${PWD}/themes/:/site/themes"
+      - "${PWD}/static/:/site/static"
+      - "${PWD}/config.toml:/site/config.toml"
+    working_dir: /site
+
+  terraform:
+    image: hashicorp/terraform:0.11.10
+    volumes:
+      - "${PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+    working_dir: /work
+    env_file: .env
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
+      - TF_INPUT=0
+      - TF_CLI_ARGS_init=-backend=true -backend-config=backend.tfvars -reconfigure
+      - TF_CLI_ARGS_plan=-lock=false -auto-approve=true
+      - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
+      - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
+

@@ -1,0 +1,21 @@
+{{- define "create_terraform_key_value" -}}
+{{- $original_key := regexp.Replace "^(.*)=.*" "$1" . -}}
+{{- $key := ( regexp.Replace "^(.*)=.*" "$1" $original_key | regexp.Replace "^TF_VAR_" "" | strings.ToLower ) -}}
+{{- $value := ( . | strings.ReplaceAll $original_key "" | regexp.Replace "^=" "" ) -}}
+{{- if ( $value | regexp.Match "^[[:punct:]].*[[:punct:]]$" ) -}}
+{{- $key }} = {{ $value -}}
+{{- else if ( $value | regexp.Match "^([0-9]+|false|true)$" ) -}}
+{{- $key }} = {{ $value -}}
+{{- else -}}
+{{- $key }} = "{{ $value -}}"
+{{- end -}}
+{{- end -}}
+
+aws_access_key = "{{ getenv "AWS_ACCESS_KEY_ID" }}"
+aws_secret_key = "{{ getenv "AWS_SECRET_ACCESS_KEY" }}"
+aws_region = "{{ getenv "AWS_REGION" "us-east-1" }}"
+environment_name = "{{ getenv "ENVIRONMENT_NAME" }}"
+blog_version_commit_sha = "{{ getenv "COMMIT_SHA" }}"
+{{- range (file.Read "/.env" | regexp.FindAll "(TF|HUGO)_.*=.*") }}
+{{ template "create_terraform_key_value" . }}
+{{- end }}

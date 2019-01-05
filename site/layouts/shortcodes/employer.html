@@ -1,3 +1,0 @@
-{{ $employer_name := ( replace (getenv "CURRENT_EMPLOYER") "\"" "" ) }}
-{{ $employer_url := ( replace (getenv "CURRENT_EMPLOYER_URL") "\"" "" ) }}
-<a href="{{ $employer_url }}">{{ $employer_name }}</a>

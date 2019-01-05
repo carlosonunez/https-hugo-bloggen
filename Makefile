@@ -1,41 +1,85 @@
-SHELL := /usr/bin/env bash
-include include/make/load_first/*.mk
-include include/make/**/*.mk
+SHELL := /usr/bin/env bash -o pipefail
+MAKEFLAGS += --silent
+COMMIT_SHA := $(shell git rev-parse HEAD | head -c8)
+VERBOSE ?= false
+INTEGRATION_TEST_TIMEOUT_IN_SECONDS := 150
+PRODUCTION_TEST_TIMEOUT_IN_SECONDS := 300
+
+ifneq ($(VERBOSE),true)
+endif
 include include/make/*.mk
 
-ifdef VERBOSE
-$(info Verbose mode is on. Make will show all steps.)
-else
-.SILENT:
-endif
-
-.PHONY: all
-all: lint unit integration deploy
-
 .PHONY: test
-test: lint unit integration
+test: unit integration 
+.PHONY: unit integration deploy destroy
 
-.PHONY: lint unit integration deploy
+unit: \
+	start_unit_tests \
+	unit_setup \
+	terraform_validate \
+	run_hugo_unit_tests \
+	unit_teardown \
+	end_unit_tests
 
-lint: lint_shell lint_terraform
+integration: TEST_TIMEOUT_IN_SECONDS = $(INTEGRATION_TEST_TIMEOUT_IN_SECONDS)
+integration: \
+	start_integration_tests \
+	integration_setup \
+	run_hugo_integration_tests_with_timeout \
+	integration_teardown \
+	end_integration_tests
 
-lint_shell: run_shellcheck
-
-lint_terraform: terraform_validate
-
-unit: run_bats_unit_tests
-integration: run_bats_integration_tests
-
-.PHONY: deploy deploy_infrastructure deploy_site
-
-deploy:
-	# In progress!
-
-deploy_infrastructure: terraform_apply
-
-.PHONY: destroy destroy_infrastructure
+deploy: \
+	get_production_env_vars_from_s3 \
+	set_up_infrastructure \
+	version_hugo_index_and_error_files \
+	deploy_hugo_blog_to_s3 \
+	wait_for_dns_to_catch_up \
+	run_production_tests
 
 destroy:
-	# In progress
+	if [ -z "$(ENVIRONMENT_NAME)" ]; \
+	then \
+		>&2 echo "ERROR: Please use the ENVIRONMENT_NAME environment variable to \
+provide the name of the environment to tear down."; \
+		exit 1; \
+	fi; \
+	env_name_lcase=$$(echo $(ENVIRONMENT_NAME) | tr A-Z a-z); \
+	$(MAKE) get_$${env_name_lcase}_env_vars_from_s3 \
+		initialize_terraform \
+		remove_hugo_blog_from_s3 \
+		tear_down_infrastructure
 
-destroy_infrastructure: terraform_destroy
+.PHONY: run_production_tests
+
+run_production_tests: TEST_TIMEOUT_IN_SECONDS = $(PRODUCTION_TEST_TIMEOUT_IN_SECONDS)
+run_production_tests: \
+	start_production_tests \
+	run_hugo_production_tests_with_timeout \
+	end_production_tests
+
+.PHONY: unit_setup integration_setup
+
+unit_setup: \
+	get_test_env_vars_locally \
+	generate_terraform_vars_for_unit_tests \
+	terraform_init \
+	remove_generated_static_content
+
+integration_setup:  \
+	get_integration_env_vars_from_s3 \
+	set_up_infrastructure \
+	version_hugo_index_and_error_files \
+	deploy_hugo_blog_to_s3 \
+	wait_for_dns_to_catch_up
+
+.PHONY: unit_teardown integration_teardown
+
+unit_teardown:  tear_down_dockerized_infrastructure
+
+integration_teardown:  \
+	remove_hugo_blog_from_s3 \
+	tear_down_infrastructure \
+	tear_down_dockerized_infrastructure \
+	remove_generated_static_content
+
