@@ -11,8 +11,10 @@ run_hugo_%_tests:
 		export CDN_URL=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output cdn_url | tr -d $$'\r'); \
 	fi; \
 	tests_to_run_upcase=$$(echo "$$tests_to_run" | tr a-z A-Z); \
-	$(DOCKER_COMPOSE_COMMAND) run --rm "hugo-$$tests_to_run-tests" > $(TEST_RESULTS_FILE); \
-	echo "$$?" >> $(TEST_RESULTS_FILE)
+	$(DOCKER_COMPOSE_COMMAND) run --rm "hugo-$$tests_to_run-tests" | tee $(TEST_RESULTS_FILE); \
+	test_result=$$?; \
+	echo "$$test_result" > $(TEST_RESULTS_FILE); \
+	exit "$$test_result";
 
 version_hugo_index_and_error_files:
 	terraform_output=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output | tr -d $$'\r'); \

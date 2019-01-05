@@ -1,15 +1,37 @@
 #!/usr/bin/env make
-.PHONY: \
-	deploy_blog_to_s3 \
-	remove_hugo_blog_from_s3 
+BLOG_BUCKET_NAME_TERRAFORM_OUTPUT_VAR=blog_bucket_name
 
-deploy_blog_to_s3:
-	export S3_BUCKET=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_bucket_name | tr -d '\r'); \
-	S3_BUCKET="$${S3_BUCKET?Please provide a S3 bucket.}" \
-		$(DOCKER_COMPOSE_COMMAND) run --rm deploy-hugo-to-s3
+.PHONY: deploy_blog_to_s3 remove_hugo_blog_from_s3 
 
-remove_hugo_blog_from_s3:
-	export S3_BUCKET=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_bucket_name | tr -d '\r'); \
-	S3_BUCKET="$${S3_BUCKET?Please provide a S3 bucket.}" \
-		$(DOCKER_COMPOSE_COMMAND) run --rm remove-hugo-from-s3
+deploy_hugo_blog_to_s3: _do_hugo_s3_action_deploy
+
+remove_hugo_blog_from_s3: _do_hugo_s3_action_remove
+
+.PHONY: _get_blog_s3_bucket_from_terraform _do_hugo_s3_action_%
+
+_get_blog_s3_bucket_from_terraform:
+	@$(DOCKER_COMPOSE_COMMAND) run --rm terraform output $(BLOG_BUCKET_NAME_TERRAFORM_OUTPUT_VAR) | \
+		tr -d $$'\r'
+
+_do_hugo_s3_action_%:
+	if ! s3_bucket=$$($(MAKE) _get_blog_s3_bucket_from_terraform); \
+	then \
+		>&2 echo "ERROR: Please define the '$(BLOG_BUCKET_NAME_TERRAFORM_OUTPUT_VAR)' \
+output in your Terraform configuration to fix this."; \
+		exit 1; \
+	fi; \
+	>&2 echo "Bucket: $$s3_bucket" ;\
+	action=$$(echo "$@" | sed 's/_do_hugo_s3_action_//' | tr '_' '-'); \
+	case "$$action" in \
+	deploy) \
+		S3_BUCKET="$$s3_bucket" $(DOCKER_COMPOSE_COMMAND) run --rm deploy-hugo-blog-to-s3; \
+		;; \
+	remove) \
+		S3_BUCKET="$$s3_bucket" $(DOCKER_COMPOSE_COMMAND) run --rm remove-hugo-blog-from-s3; \
+		;; \
+	*) \
+		>&2 echo "ERROR: Invalid Hugo S3 action: $$action"; \
+		exit 1; \
+		;; \
+	esac;
 
