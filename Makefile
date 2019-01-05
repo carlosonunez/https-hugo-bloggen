@@ -1,5 +1,5 @@
 DECORATOR := **************
-SHELL := /usr/bin/env bash
+SHELL := /usr/bin/env bash -o pipefail
 COMMIT_SHA := $(shell git rev-parse HEAD | head -c8)
 PRODUCTION_TIMEOUT_SECONDS ?= 300
 VERBOSE ?= false
@@ -31,15 +31,22 @@ deploy: \
 	get_production_env_vars_from_s3 \
 	set_up_infrastructure \
 	version_hugo_index_and_error_files \
-	deploy_blog_to_s3 \
+	deploy_hugo_blog_to_s3 \
 	wait_for_dns_to_catch_up \
 	run_production_tests
 
-destroy: \
-	remove_hugo_blog_from_s3 \
-	generate_terraform_vars \
-	terraform_init \
-	terraform_destroy
+destroy:
+	if [ -z "$(ENVIRONMENT_NAME)" ]; \
+	then \
+		>&2 echo "ERROR: Please use the ENVIRONMENT_NAME environment variable to \
+provide the name of the environment to tear down."; \
+		exit 1; \
+	fi; \
+	env_name_lcase=$$(echo $(ENVIRONMENT_NAME) | tr A-Z a-z); \
+	$(MAKE) get_$${env_name_lcase}_env_vars_from_s3 \
+		initialize_terraform \
+		remove_hugo_blog_from_s3 \
+		tear_down_infrastructure
 
 .PHONY: run_production_tests
 
@@ -71,7 +78,7 @@ integration_setup:  \
 	get_integration_env_vars_from_s3 \
 	set_up_infrastructure \
 	version_hugo_index_and_error_files \
-	deploy_blog_to_s3 \
+	deploy_hugo_blog_to_s3 \
 	wait_for_dns_to_catch_up
 
 .PHONY: unit_teardown integration_teardown
