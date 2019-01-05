@@ -1,3 +1,5 @@
+env:
+  - DOCKER_COMPOSE_VERSION=1.22.0
 services:
 - docker
 branches:
@@ -11,11 +13,15 @@ jobs:
   - stage: unit
     name: Run Unit Tests
     script:
-    - make unit
+      - make unit
   - stage: integration
     name: Run Integration Tests
     script:
-    - make integration
+      - make integration
 before_install:
 - openssl aes-256-cbc -K $encrypted_342f2f6ad141_key -iv $encrypted_342f2f6ad141_iv
   -in .env_info.enc -out .env_info -d
+- sudo rm /usr/local/bin/docker-compose
+- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+- chmod +x docker-compose
+- sudo mv docker-compose /usr/local/bin
