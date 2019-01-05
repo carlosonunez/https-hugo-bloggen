@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/carlosonunez/https-hugo-bloggen.svg?branch=master)](https://travis-ci.org/carlosonunez/https-hugo-bloggen)
+
 Easily deploy your HTTPS-enabled, S3-backed Hugo blogs!
 
 # How can I use this?
