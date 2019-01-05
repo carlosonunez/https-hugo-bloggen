@@ -11,7 +11,11 @@ include include/make/*.mk
 
 .PHONY: test
 test: unit integration 
-.PHONY: unit integration deploy destroy
+
+.PHONY: unit integration deploy destroy clean
+
+clean:
+	rm -rf /tmp/test-*
 
 unit: \
 	start_unit_tests \

@@ -19,7 +19,6 @@ services:
     env_file: .env.test
     depends_on:
       - generate-hugo-test-configs
-      - fetch-hugo-theme
     volumes:
       - "${PWD}/tests/fixtures/test_posts/:/site/content/post"
       - "${PWD}/tests/fixtures/test_themes/:/site/themes"
