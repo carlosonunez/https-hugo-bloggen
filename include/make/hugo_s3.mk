@@ -10,7 +10,7 @@ remove_hugo_blog_from_s3: _do_hugo_s3_action_remove
 .PHONY: _get_blog_s3_bucket_from_terraform _do_hugo_s3_action_%
 
 _get_blog_s3_bucket_from_terraform:
-	@$(DOCKER_COMPOSE_COMMAND) run --rm terraform output $(BLOG_BUCKET_NAME_TERRAFORM_OUTPUT_VAR) | \
+	@$(DOCKER_COMPOSE_RUN_COMMAND) terraform output $(BLOG_BUCKET_NAME_TERRAFORM_OUTPUT_VAR) | \
 		tr -d $$'\r'
 
 _do_hugo_s3_action_%:
@@ -25,10 +25,10 @@ Terraform configuration."; \
 	action=$$(echo "$@" | sed 's/_do_hugo_s3_action_//' | tr '_' '-'); \
 	case "$$action" in \
 	deploy) \
-		S3_BUCKET="$$s3_bucket" $(DOCKER_COMPOSE_COMMAND) run --rm deploy-hugo-blog-to-s3 >/dev/null; \
+		S3_BUCKET="$$s3_bucket" $(DOCKER_COMPOSE_RUN_COMMAND) deploy-hugo-blog-to-s3 >/dev/null; \
 		;; \
 	remove) \
-		S3_BUCKET="$$s3_bucket" $(DOCKER_COMPOSE_COMMAND) run --rm remove-hugo-blog-from-s3 >/dev/null; \
+		S3_BUCKET="$$s3_bucket" $(DOCKER_COMPOSE_RUN_COMMAND) remove-hugo-blog-from-s3 >/dev/null; \
 		;; \
 	*) \
 		>&2 echo "ERROR: Invalid Hugo S3 action: $$action"; \

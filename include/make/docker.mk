@@ -7,6 +7,7 @@ endif
 ifeq ($(VERBOSE),true)
 DOCKER_COMPOSE_COMMAND := $(EXPANDED_DOCKER_COMPOSE_COMMAND) --log-level INFO
 endif
+DOCKER_COMPOSE_RUN_COMMAND := $(DOCKER_COMPOSE_COMMAND) run --rm --user="$(shell id -u)"
 
 .PHONY: get_docker_compose_command tear_down_dockerized_infrastructure
 
