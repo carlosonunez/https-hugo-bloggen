@@ -1,8 +1,10 @@
 #!/usr/bin/env make
 EXPANDED_DOCKER_COMPOSE_COMMAND := docker-compose -f docker-compose.yml $(shell for file in include/compose/*.yml; do echo "-f $$file"; done)
-ifneq ($(VERBOSE),true)
 DOCKER_COMPOSE_COMMAND := $(EXPANDED_DOCKER_COMPOSE_COMMAND) --log-level CRITICAL
-else
+ifeq ($(SHOW_DOCKER_COMPOSE_LOGS),true)
+DOCKER_COMPOSE_COMMAND := $(EXPANDED_DOCKER_COMPOSE_COMMAND) --log-level INFO
+endif
+ifeq ($(VERBOSE),true)
 DOCKER_COMPOSE_COMMAND := $(EXPANDED_DOCKER_COMPOSE_COMMAND) --log-level INFO
 endif
 
