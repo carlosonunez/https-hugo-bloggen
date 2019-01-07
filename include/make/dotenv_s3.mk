@@ -46,7 +46,7 @@ _do_env_vars_s3_action_%:
 		exit 1; \
 	esac; \
 	ENVIRONMENT_NAME=$$environment_name S3_BUCKET=$$s3_bucket \
-		$(DOCKER_COMPOSE_COMMAND) run --rm "$$docker_compose_service"; \
+		$(DOCKER_COMPOSE_RUN_COMMAND) "$$docker_compose_service"; \
 	if [ "$$action" == "get" ]; \
 	then \
 		echo "COMMIT_SHA=$(COMMIT_SHA)" >> .env; \

@@ -3,7 +3,7 @@ DNS_RETRY_LIMIT_SECONDS ?= 60
 
 .PHONY: wait_for_dns_to_catch_up wait_for_cloudfront_to_become_ready
 wait_for_dns_to_catch_up:
-	blog_url=$$($(DOCKER_COMPOSE_COMMAND) run --rm terraform output blog_url | tr -d '\r'); \
+	blog_url=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output blog_url | tr -d '\r'); \
 	for i in $$(seq 1 $(DNS_RETRY_LIMIT_SECONDS)); \
 	do \
 		if host $$blog_url &>/dev/null; \
@@ -16,7 +16,7 @@ wait_for_dns_to_catch_up:
 	exit 1;
 
 wait_for_cdn_to_become_ready:
-	blog_url=$(DOCKER_COMPOSE_COMMAND) run --rm terraform output cdn_url | tr -d '\r'); \
+	blog_url=$(DOCKER_COMPOSE_RUN_COMMAND) terraform output cdn_url | tr -d '\r'); \
 	for i in $$(seq 1 $(DNS_RETRY_LIMIT_SECONDS)); \
 	do \
 		if nc -z $$blog_url 443 &>/dev/null; \

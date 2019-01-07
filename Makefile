@@ -1,17 +1,22 @@
 SHELL := /usr/bin/env bash -o pipefail
-MAKEFLAGS += --silent
 COMMIT_SHA := $(shell git rev-parse HEAD | head -c8)
 VERBOSE ?= false
 INTEGRATION_TEST_TIMEOUT_IN_SECONDS := 150
 PRODUCTION_TEST_TIMEOUT_IN_SECONDS := 300
+SHOW_DOCKER_COMPOSE_LOGS ?= false
 
 ifneq ($(VERBOSE),true)
+MAKEFLAGS += --silent
 endif
 include include/make/*.mk
 
 .PHONY: test
 test: unit integration 
-.PHONY: unit integration deploy destroy
+
+.PHONY: unit integration deploy destroy clean
+
+clean:
+	rm -rf /tmp/test-*
 
 unit: \
 	start_unit_tests \

@@ -1,7 +1,15 @@
 version: "2.4"
 services:
+  travis-ci:
+    image: skandyla/travis-cli
+    volumes:
+      - "$PWD:/work"
+    working_dir: /work
+    environment:
+      - TRAVIS_GITHUB_TOKEN
   aws:
     image: anigeo/awscli
+    env_file: .env
     environment:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY

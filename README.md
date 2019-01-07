@@ -1,12 +1,11 @@
-# What is this?
+[![Build Status](https://travis-ci.org/carlosonunez/https-hugo-bloggen.svg?branch=master)](https://travis-ci.org/carlosonunez/https-hugo-bloggen)
 
-This is the infrastructure powering Carlos's blog!
+Easily deploy your HTTPS-enabled, S3-backed Hugo blogs!
 
-# I want to blog! Can I copy this repo?
+# How can I use this?
 
-Sure can! MIT license for the win.
-
-# Thanks!
-
-The work here was inspired by [Rupak](https://twitter.com/rupakg)'s work over at Serverless.
-[Here's the site](https://serverless.com/blog/how-to-create-blog-using-components-hugo/)!
+1. Ensure that your repository conforms to [Hugo's standards](https://gohugo.io/getting-started/directory-structure/).
+2. Clone this repository.
+3. Create an environment file: `make create_env`. Fill in the values shown in the
+   newly-created `.env` file.
+4. Deploy your blog: `make deploy`.

@@ -57,7 +57,7 @@ services:
       - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
       - "$PWD/tests:/tests"
     image: alpine
-    command: "cp /tests/fixtures/backend.tf /work/backend.tf"
+    entrypoint: "sh -c 'cp /tests/fixtures/backend.tf /work/backend.tf && touch /work/backend.tfvars'"
 
   terraform_debug:
     extends: terraform
