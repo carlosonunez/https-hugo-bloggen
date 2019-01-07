@@ -44,8 +44,36 @@ version_hugo_index_and_error_files:
 	mv site/public/index.html "site/public/$$INDEX_HTML_FILE" && \
 	mv site/public/404.html "site/public/$$ERROR_HTML_FILE"
 
+ifdef TRAVIS
 remove_generated_static_content:
-	ls -la . ; \
-	ls -la site; \
+	docker run -v "$$PWD:/work" -w /work --entrypoint sh alpine -c "rm -rf site"
+else
+remove_generated_static_content:
 	rm -rf site/
+endif
 
+.PHONY: create_site_folder_so_travis_works
+
+# For some reason, the 'hugo' Docker service gets a permission denied error when
+# trying to create the 'site' folder at the root of this repository, even after
+# running the Docker Compose service as the 'travis' user (using the
+# '--user "$(id -u)"' option). This works fine on my Mac, even without setting
+# the --user option explictliy, and, unfortunately, the Docker service
+# does not work on OS X (likely due to issues with nesting VMs).
+#
+# This seems to be unique to Hugo, as the Docker Compose services that retrieve
+# my environment dotfile Compose services are able to download and write the
+# .env to this directory.
+#
+# There are two ways I can fix this: explicitly setting the user in the
+# 'hugo' Dockerfile using a build argument, or manually creating and permissioning
+# the directory in advance. The former option requires shoehorning even more
+# stuff into our auto-generated Compose command, so I like the latter approach
+# instead.
+ifdef TRAVIS
+create_site_folder_so_travis_works:
+	mkdir site && chown -R "$$USER" site
+else
+create_site_folder_so_travis_works:
+	>&2 echo "WARNING: Not running in Travis; skipping."
+endif

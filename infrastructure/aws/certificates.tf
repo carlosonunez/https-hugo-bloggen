@@ -1,4 +1,5 @@
 resource "aws_acm_certificate" "aws_managed_https_certificate" {
+  count   = "${var.enable_cloudfront_cdn}"
   tags = "${local.default_tags}"
   domain_name = "${local.blog_fqdn_requested}"
   validation_method = "DNS"
@@ -8,6 +9,7 @@ resource "aws_acm_certificate" "aws_managed_https_certificate" {
 }
 
 resource "aws_route53_record" "aws_managed_https_certificate_validation_record" {
+  count   = "${var.enable_cloudfront_cdn}"
   name    = "${aws_acm_certificate.aws_managed_https_certificate.domain_validation_options.0.resource_record_name}"
   type    = "${aws_acm_certificate.aws_managed_https_certificate.domain_validation_options.0.resource_record_type}"
   zone_id = "${data.aws_route53_zone.found.id}"
@@ -16,6 +18,7 @@ resource "aws_route53_record" "aws_managed_https_certificate_validation_record" 
 }
 
 resource "aws_acm_certificate_validation" "aws_managed_https_certificate" {
+  count   = "${var.enable_cloudfront_cdn}"
   certificate_arn         = "${aws_acm_certificate.aws_managed_https_certificate.arn}"
   validation_record_fqdns = ["${aws_route53_record.aws_managed_https_certificate_validation_record.fqdn}"]
   timeouts {
