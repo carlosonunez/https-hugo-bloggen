@@ -8,7 +8,7 @@ resource "aws_cloudfront_distribution" "blog" {
   tags = "${local.default_tags}"
   aliases = [ "${local.blog_fqdn_requested}" ]
   origin {
-    domain_name =  "${aws_s3_bucket.blog.bucket_regional_domain_name}"
+    domain_name = "${aws_s3_bucket.blog.website_endpoint}"
     origin_id = "${local.s3_bucket_origin_id}"
     s3_origin_config {
       origin_access_identity = "${aws_cloudfront_origin_access_identity.blog_access.cloudfront_access_identity_path}"
