@@ -41,8 +41,8 @@ version_hugo_index_and_error_files:
 		>&2 echo "ERROR: Site was not properly generated."; \
 		exit 1; \
 	fi; \
-	mv site/public/index.html "site/public/$$INDEX_HTML_FILE" && \
-	mv site/public/404.html "site/public/$$ERROR_HTML_FILE"
+  cp site/public/index.html "site/public/$$INDEX_HTML_FILE" && \
+	cp site/public/404.html "site/public/$$ERROR_HTML_FILE"
 
 ifdef TRAVIS
 remove_generated_static_content:
