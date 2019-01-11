@@ -36,7 +36,7 @@ resource "aws_s3_bucket" "blog" {
     "Redirect": {
       "ReplaceKeyPrefixWith": "${local.error_html_file}"
     }
-  },
+  }
 ]
 EOF
   }
