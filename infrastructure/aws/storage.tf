@@ -19,8 +19,7 @@ resource "aws_s3_bucket" "blog" {
   website {
     index_document = "index.html"
     error_document = "404.html"
-  }
-  routing_rules = <<EOF
+    routing_rules = <<EOF
 [
   {
     "Condition": {
@@ -40,4 +39,5 @@ resource "aws_s3_bucket" "blog" {
   },
 ]
 EOF
+  }
 }
