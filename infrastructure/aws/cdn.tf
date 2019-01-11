@@ -10,8 +10,11 @@ resource "aws_cloudfront_distribution" "blog" {
   origin {
     domain_name = "${aws_s3_bucket.blog.website_endpoint}"
     origin_id = "${local.s3_bucket_origin_id}"
-    s3_origin_config {
-      origin_access_identity = "${aws_cloudfront_origin_access_identity.blog_access.cloudfront_access_identity_path}"
+    custom_origin_config {
+      http_port = 80
+      https_port = 443
+      origin_protocol_policy = "https_only"
+      origin_ssl_protocols = [ "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" ]
     }
   }
 
