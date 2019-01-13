@@ -26,8 +26,3 @@ teardown() {
   [ "$status" -eq 0 ]
   [ "$output" == 200 ]
 }
-
-@test "Blog on the internet renders successfully" {
-  run find_element_in_hugo_blog "<meta name=\"generator\" content=\"Hugo $HUGO_VERSION\" />" "$HUGO_BASE_URL"
-  [ "$status" -eq 0 ]
-}
