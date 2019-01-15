@@ -14,6 +14,23 @@ services:
     extends: hugo
     env_file: .env
 
+  hugo-server:
+    extends: hugo
+    env_file: .env
+    depends_on:
+      - generate-hugo-configs
+    command:
+      - server
+      - --baseURL
+      - "http://localhost"
+      - --bind
+      - "0.0.0.0"
+      - -p
+      - "8080"
+    ports:
+      - 8080:8080
+
+
   hugo-test-server:
     extends: hugo
     env_file: .env.test
