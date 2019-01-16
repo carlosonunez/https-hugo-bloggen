@@ -3,7 +3,7 @@ services:
   fetch-hugo-theme:
     image: alpine/git
     volumes:
-      - "$PWD:/work"
+      - "$HOST_PWD:/work"
     working_dir: /work
     env_file: .env
     environment:
@@ -37,8 +37,8 @@ services:
     depends_on:
       - generate-hugo-test-configs
     volumes:
-      - "${PWD}/tests/fixtures/test_posts/:/site/content/post"
-      - "${PWD}/tests/fixtures/test_themes/:/site/themes"
+      - "${HOST_PWD}/tests/fixtures/test_posts/:/site/content/post"
+      - "${HOST_PWD}/tests/fixtures/test_themes/:/site/themes"
     command:
       - server
       - --baseURL
@@ -59,7 +59,7 @@ services:
     links:
       - hugo-test-server:hugo
     volumes:
-      - "${PWD}/tests:/tests"
+      - "${HOST_PWD}/tests:/tests"
     command: /tests/unit
 
   hugo-integration-tests:
@@ -68,7 +68,7 @@ services:
     environment:
       - BLOG_URL
     volumes:
-      - "${PWD}/tests:/tests"
+      - "${HOST_PWD}/tests:/tests"
     command: /tests/integration
 
   hugo-production-tests:
@@ -78,14 +78,14 @@ services:
       - BLOG_URL
       - CDN_URL
     volumes:
-      - "${PWD}/tests:/tests"
+      - "${HOST_PWD}/tests:/tests"
     command: /tests/production
 
   generate-hugo-configs:
     extends: gomplate
     env_file: .env
     volumes:
-      - "${PWD}:/work"
+      - "${HOST_PWD}:/work"
     working_dir: /work
     command:
       - "--file"
@@ -97,7 +97,7 @@ services:
     extends: gomplate
     env_file: .env.test
     volumes:
-      - "${PWD}:/work"
+      - "${HOST_PWD}:/work"
     working_dir: /work
     command:
       - "--file"

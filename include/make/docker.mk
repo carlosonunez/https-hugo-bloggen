@@ -1,5 +1,5 @@
 #!/usr/bin/env make
-EXPANDED_DOCKER_COMPOSE_COMMAND := docker-compose -f docker-compose.yml $(shell for file in include/compose/*.yml; do echo "-f $$file"; done)
+EXPANDED_DOCKER_COMPOSE_COMMAND := HOST_PWD=$(PWD) docker-compose -f docker-compose.yml $(shell for file in include/compose/*.yml; do echo "-f $$file"; done)
 DOCKER_COMPOSE_COMMAND := $(EXPANDED_DOCKER_COMPOSE_COMMAND) --log-level CRITICAL
 ifeq ($(SHOW_DOCKER_COMPOSE_LOGS),true)
 DOCKER_COMPOSE_COMMAND := $(EXPANDED_DOCKER_COMPOSE_COMMAND) --log-level INFO

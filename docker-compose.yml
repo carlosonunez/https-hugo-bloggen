@@ -3,7 +3,7 @@ services:
   travis-ci:
     image: skandyla/travis-cli
     volumes:
-      - "$PWD:/work"
+      - "$HOST_PWD:/work"
     working_dir: /work
     environment:
       - TRAVIS_GITHUB_TOKEN
@@ -15,7 +15,7 @@ services:
       - AWS_SECRET_ACCESS_KEY
       - AWS_REGION
     volumes:
-      - "${PWD}:/work"
+      - "${HOST_PWD}:/work"
 
   gomplate:
     image: hairyhenderson/gomplate
@@ -29,18 +29,18 @@ services:
       context: .
     tty: true
     volumes:
-      - "${PWD}/site:/site"
-      - "${PWD}/posts/:/site/content/post"
-      - "${PWD}/layouts/:/site/layouts"
-      - "${PWD}/themes/:/site/themes"
-      - "${PWD}/static/:/site/static"
-      - "${PWD}/config.toml:/site/config.toml"
+      - "${HOST_PWD}/site:/site"
+      - "${HOST_PWD}/posts/:/site/content/post"
+      - "${HOST_PWD}/layouts/:/site/layouts"
+      - "${HOST_PWD}/themes/:/site/themes"
+      - "${HOST_PWD}/static/:/site/static"
+      - "${HOST_PWD}/config.toml:/site/config.toml"
     working_dir: /site
 
   terraform:
     image: hashicorp/terraform:0.11.10
     volumes:
-      - "${PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "${HOST_PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
     working_dir: /work
     env_file: .env
     environment:
