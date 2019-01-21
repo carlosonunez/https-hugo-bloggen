@@ -4,8 +4,8 @@ services:
     extends: gomplate
     env_file: .env
     volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/.env:/.env"
+      - "$HOST_PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "$HOST_PWD/.env:/.env"
     working_dir: /work
     command:
       - "--file"
@@ -17,8 +17,8 @@ services:
     extends: gomplate
     env_file: .env
     volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/.env:/.env"
+      - "$HOST_PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "$HOST_PWD/.env:/.env"
     working_dir: /work
     command:
       - "--file"
@@ -30,8 +30,8 @@ services:
     extends: gomplate
     env_file: .env
     volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/.env:/.env"
+      - "$HOST_PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "$HOST_PWD/.env:/.env"
     working_dir: /work
     command:
       - "--file"
@@ -43,8 +43,8 @@ services:
     extends: gomplate
     env_file: .env.test
     volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/.env.test:/.env"
+      - "$HOST_PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "$HOST_PWD/.env.test:/.env"
     working_dir: /work
     command:
       - "--file"
@@ -54,8 +54,8 @@ services:
 
   generate-terraform-unit-test-backend:
     volumes:
-      - "$PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
-      - "$PWD/tests:/tests"
+      - "$HOST_PWD/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
+      - "$HOST_PWD/tests:/tests"
     image: alpine
     entrypoint: "sh -c 'cp /tests/fixtures/backend.tf /work/backend.tf && touch /work/backend.tfvars'"
 

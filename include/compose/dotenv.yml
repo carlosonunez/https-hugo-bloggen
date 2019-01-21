@@ -6,7 +6,7 @@ services:
       - ENVIRONMENT_NAME
       - S3_BUCKET
     volumes:
-      - $PWD:/work
+      - $HOST_PWD:/work
     command: s3 cp s3://${S3_BUCKET}/${ENVIRONMENT_NAME}/.env /work/.env
 
   upload-dotenv-file-to-s3:
@@ -15,7 +15,7 @@ services:
       - ENVIRONMENT_NAME
       - S3_BUCKET
     volumes:
-      - $PWD:/work
+      - $HOST_PWD:/work
     entrypoint: 
       - sh
       - "-c"

@@ -18,6 +18,45 @@ having your builder clone this repository:
 - Remove any `docker-compose.yml` and `Makefile` files present at the root
   of your directory: `rm -f docker-compose.yml Makefile`
 
+# Rendering your blog locally
+
+## Without Docker
+
+To render your blog locally, use this Make command: `make start_local_blog`.
+
+## With Docker
+
+1. Clone this repository: `git clone https://github.com/carlosonunez/https-hugo-bloggen`
+2. Build the Docker image within: `docker build -t bloggen https-hugo-bloggen`
+3. Run `make start_local_blog`, but export your working directory with the
+   `HOST_PWD` environment variable so that nested containers know where to 
+   find your contents:
+
+   ```bash
+   docker run -e HOST_PWD=$PWD \
+    -v "$PWD/https-hugo-bloggen:/app" \
+    -v "$PWD/posts:/app/posts" \
+    -v "$PWD/layouts:/app/layouts" \
+    -v "$PWD/static:/app/static" \
+    -v "$PWD/config.toml.tmpl:/app/config.toml.tmpl" \
+    -w /app \
+    -p 8080:8080 \
+    --net host \
+    --name blog \
+    bloggen start_local_blog
+  ```
+
+*NOTE*: You might find it easier to use Docker Compose for this. Also, consider
+adding `https-hugo-bloggen` to your `.gitignore` if you intend on always
+using the latest version.
+
+*NOTE*: `--net=host` is required so that the port allocated by the nested
+Hugo container is made accessible to your host. If you are using 8080 for
+something else, choose another port.
+
+*NOTE*: To see the directory structure created by Hugo, use this command:
+`docker exec -it blog sh -c "ls /app/site"`
+
 # Remote environment files
 
 You can fetch remote environment dotfiles by using special environment variables

@@ -1,6 +1,9 @@
 FROM alpine
-ARG HUGO_VERSION
-ENV HUGO_URL=https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_Linux-64bit.tar.gz
-ADD $HUGO_URL /tmp/hugo.tar.gz
-RUN tar -xvf /tmp/hugo.tar.gz -C /usr/bin/
-ENTRYPOINT [ "hugo" ]
+MAINTAINER Carlos Nunez <dev@carlosnunez.me>
+
+COPY . /app
+RUN apk add --no-cache bash make git docker py-pip && \
+  pip install docker-compose && \
+  rm -rf .env .git
+
+ENTRYPOINT [ "make" ]
