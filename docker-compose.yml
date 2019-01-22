@@ -31,7 +31,7 @@ services:
     tty: true
     volumes:
       - "${HOST_PWD}/site:/site"
-      - "${HOST_PWD}/posts/:/site/content/post"
+      - "${HOST_PWD}/content:/site/content"
       - "${HOST_PWD}/layouts/:/site/layouts"
       - "${HOST_PWD}/themes/:/site/themes"
       - "${HOST_PWD}/static/:/site/static"
