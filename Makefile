@@ -1,5 +1,5 @@
 SHELL := /usr/bin/env bash -o pipefail
-COMMIT_SHA := $(shell git rev-parse HEAD | head -c8)
+COMMIT_SHA ?= $(shell git rev-parse HEAD | head -c8)
 VERBOSE ?= false
 INTEGRATION_TEST_TIMEOUT_IN_SECONDS := 150
 PRODUCTION_TEST_TIMEOUT_IN_SECONDS := 300

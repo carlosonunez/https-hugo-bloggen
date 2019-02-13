@@ -33,6 +33,11 @@ start_local_blog:
 	$(DOCKER_COMPOSE_RUN_COMMAND) fetch-hugo-theme && \
 	$(DOCKER_COMPOSE_COMMAND) up hugo-server
 
+start_local_blog_with_drafts:
+	$(DOCKER_COMPOSE_RUN_COMMAND) generate-hugo-configs && \
+	$(DOCKER_COMPOSE_RUN_COMMAND) fetch-hugo-theme && \
+	$(DOCKER_COMPOSE_COMMAND) up hugo-server-with-drafts
+
 version_hugo_index_and_error_files:
 	export S3_BUCKET=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output blog_bucket_name | tr -d $$'\r' | sed 's/index_html_file = //'); \
 	export INDEX_HTML_FILE=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output index_html_name | tr -d $$'\r' | sed 's/index_html_file = //'); \

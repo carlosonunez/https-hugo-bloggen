@@ -8,7 +8,8 @@ services:
     env_file: .env
     environment:
       - HUGO_THEME_REPO_URL
-    entrypoint: "sh -c 'rm -rf themes && 1>/dev/null git clone $HUGO_THEME_REPO_URL themes/$$(basename $HUGO_THEME_REPO_URL)'"
+      - USE_LOCAL_THEME
+    entrypoint: sh -c 'if [ \"${USE_LOCAL_THEME}\" == \"true\" ] && [ -d themes/$$(basename $HUGO_THEME_REPO_URL) ]; then echo [blog-gen] Using local theme \"$$(basename ${HUGO_THEME_REPO_URL})\"; exit 0; fi; rm -rf themes && 1>/dev/null git clone ${HUGO_THEME_REPO_URL} themes/$$(basename ${HUGO_THEME_REPO_URL})'
 
   hugo-generate-static-files:
     extends: hugo
@@ -19,10 +20,9 @@ services:
     env_file: .env
     ports:
       - 8080:8080
-    depends_on:
-      - generate-hugo-configs
     command:
       - server
+      - --disableFastRender
       - --baseURL
       - "http://localhost"
       - --bind
@@ -31,6 +31,25 @@ services:
       - "8080"
     ports:
       - 8080:8080
+
+  hugo-server-with-drafts:
+    extends: hugo
+    env_file: .env
+    ports:
+      - 8080:8080
+    command:
+      - server
+      - --buildDrafts
+      - --disableFastRender
+      - --baseURL
+      - "http://localhost"
+      - --bind
+      - "0.0.0.0"
+      - -p
+      - "8080"
+    ports:
+      - 8080:8080
+
 
 
   hugo-test-server:
