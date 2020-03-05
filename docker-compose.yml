@@ -26,7 +26,7 @@ services:
     build:
       dockerfile: hugo.dockerfile
       args:
-        - HUGO_VERSION=0.49
+        - HUGO_VERSION=0.66.0
       context: .
     tty: true
     volumes:
