@@ -18,7 +18,7 @@ services:
       - "${HOST_PWD}:/work"
 
   gomplate:
-    image: hairyhenderson/gomplate
+    image: hairyhenderson/gomplate:v3.5.0
     environment:
       - GOMPLATE_SUPPRESS_EMPTY=true
 
