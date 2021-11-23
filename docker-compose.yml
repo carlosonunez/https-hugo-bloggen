@@ -21,6 +21,7 @@ services:
     image: hairyhenderson/gomplate:v3.10.0-alpine
     environment:
       - GOMPLATE_SUPPRESS_EMPTY=true
+      - COMMIT_SHA
 
   hugo:
     build:
