@@ -3,7 +3,15 @@ DNS_RETRY_LIMIT_SECONDS ?= 60
 
 .PHONY: wait_for_dns_to_catch_up wait_for_cloudfront_to_become_ready
 wait_for_dns_to_catch_up:
-	blog_url=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output blog_url | tr -d '\r'); \
+	>&2 echo "INFO: Logging into AWS; hang on."; \
+	aws_session=$$($(DOCKER_COMPOSE_RUN_COMMAND) -T obtain-aws-session-credentials); \
+	if test -z "$$aws_session"; \
+	then >&2 echo "ERROR: Unable to receive creds from AWS with AK/SK provided." && exit 1; \
+	fi; \
+	export AWS_ACCESS_KEY_ID=$$( echo "$$aws_session" | jq -r '.Credentials.AccessKeyId' ); \
+	export AWS_SECRET_ACCESS_KEY=$$( echo "$$aws_session" | jq -r '.Credentials.SecretAccessKey'); \
+	export AWS_SESSION_TOKEN=$$( echo "$$aws_session" | jq -r '.Credentials.SessionToken' ); \
+	blog_url=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output blog_url | tr -d '\r' | tr -d '"'); \
 	for i in $$(seq 1 $(DNS_RETRY_LIMIT_SECONDS)); \
 	do \
 		if host $$blog_url &>/dev/null; \
@@ -11,12 +19,21 @@ wait_for_dns_to_catch_up:
 			exit 0; \
 		fi; \
 		>&2 echo "WARNING: $$blog_url is not up yet. (Attempt $$i/$(DNS_RETRY_LIMIT_SECONDS))"; \
+		sleep 1; \
 	done; \
 	>&2 echo "ERROR: $$blog_url never came up."; \
 	exit 1;
 
 wait_for_cdn_to_become_ready:
-	blog_url=$(DOCKER_COMPOSE_RUN_COMMAND) terraform output cdn_url | tr -d '\r'); \
+	>&2 echo "INFO: Logging into AWS; hang on."; \
+	aws_session=$$($(DOCKER_COMPOSE_RUN_COMMAND) -T obtain-aws-session-credentials); \
+	if test -z "$$aws_session"; \
+	then >&2 echo "ERROR: Unable to receive creds from AWS with AK/SK provided." && exit 1; \
+	fi; \
+	export AWS_ACCESS_KEY_ID=$$( echo "$$aws_session" | jq -r '.Credentials.AccessKeyId' ); \
+	export AWS_SECRET_ACCESS_KEY=$$( echo "$$aws_session" | jq -r '.Credentials.SecretAccessKey'); \
+	export AWS_SESSION_TOKEN=$$( echo "$$aws_session" | jq -r '.Credentials.SessionToken' ); \
+	blog_url=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output cdn_url | tr -d '\r' | tr -d '"'); \
 	for i in $$(seq 1 $(DNS_RETRY_LIMIT_SECONDS)); \
 	do \
 		if nc -z $$blog_url 443 &>/dev/null; \
@@ -24,6 +41,7 @@ wait_for_cdn_to_become_ready:
 			exit 0; \
 		fi; \
 		>&2 echo "WARNING: $$blog_url is not up yet. (Attempt $$i/$(DNS_RETRY_LIMIT_SECONDS))"; \
+		sleep 1; \
 	done; \
 	>&2 echo "ERROR: $$blog_url never came up."; \
 	exit 1;
