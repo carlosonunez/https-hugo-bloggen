@@ -4,9 +4,10 @@ VERBOSE ?= false
 INTEGRATION_TEST_TIMEOUT_IN_SECONDS := 150
 PRODUCTION_TEST_TIMEOUT_IN_SECONDS := 300
 SHOW_DOCKER_COMPOSE_LOGS ?= true
+ENV_FILE ?= ./.env
 
-ifneq (,$(wildcard ./.env))
-	include .env
+ifneq (,$(wildcard $(ENV_FILE)))
+	include $(ENV_FILE)
 	export
 endif
 
