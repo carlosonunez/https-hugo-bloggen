@@ -5,6 +5,10 @@ services:
     environment:
       - ENVIRONMENT_NAME
       - S3_BUCKET
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_REGION
     volumes:
       - $HOST_PWD:/work
     command: s3 cp s3://${S3_BUCKET}/${ENVIRONMENT_NAME}/.env /work/.env
@@ -14,6 +18,10 @@ services:
     environment:
       - ENVIRONMENT_NAME
       - S3_BUCKET
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_REGION
     volumes:
       - $HOST_PWD:/work
     entrypoint: 

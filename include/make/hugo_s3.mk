@@ -10,10 +10,26 @@ remove_hugo_blog_from_s3: _do_hugo_s3_action_remove
 .PHONY: _get_blog_s3_bucket_from_terraform _do_hugo_s3_action_%
 
 _get_blog_s3_bucket_from_terraform:
-	@$(DOCKER_COMPOSE_RUN_COMMAND) terraform output $(BLOG_BUCKET_NAME_TERRAFORM_OUTPUT_VAR) | \
+	>&2 echo "INFO: Logging into AWS; hang on."
+	aws_session=$$($(DOCKER_COMPOSE_RUN_COMMAND) -T obtain-aws-session-credentials); \
+	if test -z "$$aws_session"; \
+	then >&2 echo "ERROR: Unable to receive creds from AWS with AK/SK provided." && exit 1; \
+	fi; \
+	export AWS_ACCESS_KEY_ID=$$( echo "$$aws_session" | jq -r '.Credentials.AccessKeyId' ); \
+	export AWS_SECRET_ACCESS_KEY=$$( echo "$$aws_session" | jq -r '.Credentials.SecretAccessKey'); \
+	export AWS_SESSION_TOKEN=$$( echo "$$aws_session" | jq -r '.Credentials.SessionToken' ); \
+	$(DOCKER_COMPOSE_RUN_COMMAND) terraform output $(BLOG_BUCKET_NAME_TERRAFORM_OUTPUT_VAR) | \
 		tr -d $$'\r'
 
 _do_hugo_s3_action_%:
+	>&2 echo "INFO: Logging into AWS; hang on."
+	aws_session=$$($(DOCKER_COMPOSE_RUN_COMMAND) -T obtain-aws-session-credentials); \
+	if test -z "$$aws_session"; \
+	then >&2 echo "ERROR: Unable to receive creds from AWS with AK/SK provided." && exit 1; \
+	fi; \
+	export AWS_ACCESS_KEY_ID=$$( echo "$$aws_session" | jq -r '.Credentials.AccessKeyId' ); \
+	export AWS_SECRET_ACCESS_KEY=$$( echo "$$aws_session" | jq -r '.Credentials.SecretAccessKey'); \
+	export AWS_SESSION_TOKEN=$$( echo "$$aws_session" | jq -r '.Credentials.SessionToken' ); \
 	if ! s3_bucket=$$($(MAKE) _get_blog_s3_bucket_from_terraform); \
 	then \
 		>&2 echo "ERROR: The S3 bucket for your blog was not found. Either there is \

@@ -8,7 +8,7 @@ services:
     environment:
       - TRAVIS_GITHUB_TOKEN
   aws:
-    image: anigeo/awscli
+    image: amazon/aws-cli:2.2.9
     env_file: .env
     environment:
       - AWS_ACCESS_KEY_ID
@@ -48,9 +48,23 @@ services:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_REGION
+      - AWS_SESSION_TOKEN
       - TF_INPUT=0
       - TF_CLI_ARGS_init=-backend=true -backend-config=backend.tfvars -reconfigure
       - TF_CLI_ARGS_plan=-lock=false -auto-approve=true
       - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
       - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
 
+  obtain-aws-session-credentials:
+    extends: aws
+    command:
+      - sts
+      - assume-role
+      - --role-arn
+      - "$AWS_ROLE_ARN"
+      - --external-id
+      - "$AWS_STS_EXTERNAL_ID"
+      - --role-session-name
+      - "$AWS_SESSION_NAME"
+      - --output
+      - json

@@ -9,6 +9,14 @@ run_hugo_%_tests:
 	tests_to_run=$$(echo "$@" | sed 's/run_hugo_\([a-zA-Z]\+\)_tests/\1/'); \
 	if [ "$$tests_to_run" == "production" ]; \
 	then \
+		>&2 echo "INFO: Logging into AWS; hang on."
+		aws_session=$$($(DOCKER_COMPOSE_RUN_COMMAND) -T obtain-aws-session-credentials); \
+		if test -z "$$aws_session"; \
+		then >&2 echo "ERROR: Unable to receive creds from AWS with AK/SK provided." && exit 1; \
+		fi; \
+		export AWS_ACCESS_KEY_ID=$$( echo "$$aws_session" | jq -r '.Credentials.AccessKeyId' ); \
+		export AWS_SECRET_ACCESS_KEY=$$( echo "$$aws_session" | jq -r '.Credentials.SecretAccessKey'); \
+		export AWS_SESSION_TOKEN=$$( echo "$$aws_session" | jq -r '.Credentials.SessionToken' ); \
 		export CDN_URL=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output cdn_url | tr -d $$'\r'); \
 	fi; \
 	tests_to_run_upcase=$$(echo "$$tests_to_run" | tr a-z A-Z); \
@@ -39,6 +47,14 @@ start_local_blog_with_drafts:
 	$(DOCKER_COMPOSE_COMMAND) up hugo-server-with-drafts
 
 version_hugo_index_and_error_files:
+		>&2 echo "INFO: Logging into AWS; hang on."
+		aws_session=$$($(DOCKER_COMPOSE_RUN_COMMAND) -T obtain-aws-session-credentials); \
+		if test -z "$$aws_session"; \
+		then >&2 echo "ERROR: Unable to receive creds from AWS with AK/SK provided." && exit 1; \
+		fi; \
+		export AWS_ACCESS_KEY_ID=$$( echo "$$aws_session" | jq -r '.Credentials.AccessKeyId' ); \
+		export AWS_SECRET_ACCESS_KEY=$$( echo "$$aws_session" | jq -r '.Credentials.SecretAccessKey'); \
+		export AWS_SESSION_TOKEN=$$( echo "$$aws_session" | jq -r '.Credentials.SessionToken' ); \
 	export S3_BUCKET=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output blog_bucket_name | tr -d $$'\r' | sed 's/index_html_file = //'); \
 	export INDEX_HTML_FILE=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output index_html_name | tr -d $$'\r' | sed 's/index_html_file = //'); \
 	export ERROR_HTML_FILE=$$($(DOCKER_COMPOSE_RUN_COMMAND) terraform output error_html_name | tr -d $$'\r' | sed 's/error_html_file = //'); \
