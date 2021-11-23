@@ -54,6 +54,8 @@ test_commit_sha_or_exit:
 environment variable."; \
 		exit 1; \
 	fi
+	>&2 echo "=======> Deploying blog $(HUGO_BASE_URL) with version \
+$(COMMIT_SHA) using theme: $(HUGO_THEME_REPO_URL)]"
 
 destroy:
 	if [ -z "$(ENVIRONMENT_NAME)" ]; \
