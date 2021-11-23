@@ -5,6 +5,11 @@ INTEGRATION_TEST_TIMEOUT_IN_SECONDS := 150
 PRODUCTION_TEST_TIMEOUT_IN_SECONDS := 300
 SHOW_DOCKER_COMPOSE_LOGS ?= true
 
+ifneq (,$(wildcard ./.env))
+	include .env
+	export
+endif
+
 ifneq ($(VERBOSE),true)
 MAKEFLAGS += --silent
 endif
@@ -35,12 +40,20 @@ integration: \
 	end_integration_tests
 
 deploy: \
-	get_production_env_vars_from_s3 \
+	test_commit_sha_or_exit \
 	set_up_infrastructure \
 	version_hugo_index_and_error_files \
 	deploy_hugo_blog_to_s3 \
 	wait_for_dns_to_catch_up \
 	run_production_tests
+
+test_commit_sha_or_exit:
+	if [ -z "$(COMMIT_SHA)" ]; \
+	then \
+		>&2 echo "ERROR: Please provide a commit SHA through the COMMIT_SHA \
+environment variable."; \
+		exit 1; \
+	fi
 
 destroy:
 	if [ -z "$(ENVIRONMENT_NAME)" ]; \
