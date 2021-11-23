@@ -1,10 +1,10 @@
 resource "aws_cloudfront_origin_access_identity" "blog_access" {
-  count = "${var.enable_cloudfront_cdn}"
+  count = "${var.enable_cloudfront_cdn == true ? 1 : 0}"
   comment = "Environment: ${var.environment_name}"
 }
 
 resource "aws_cloudfront_distribution" "blog" {
-  count = "${var.enable_cloudfront_cdn}"
+  count = "${var.enable_cloudfront_cdn == true ? 1 : 0}"
   tags = "${local.default_tags}"
   aliases = [ "${local.blog_fqdn_requested}" ]
   origin {
@@ -48,7 +48,7 @@ resource "aws_cloudfront_distribution" "blog" {
   }
   price_class = "PriceClass_100"
   viewer_certificate {
-    acm_certificate_arn = "${aws_acm_certificate_validation.aws_managed_https_certificate.certificate_arn}"
+    acm_certificate_arn = "${aws_acm_certificate_validation.aws_managed_https_certificate[0].certificate_arn}"
     ssl_support_method = "sni-only"
     minimum_protocol_version = "TLSv1.1_2016"
   } 
