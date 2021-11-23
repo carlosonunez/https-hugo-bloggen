@@ -7,7 +7,7 @@ output "blog_bucket_url" {
 }
 
 output "cdn_url" {
-  value = "${element(concat(aws_cloudfront_distribution.blog.*.domain_name, list("none")), 0)}"
+  value = "${element(concat(aws_cloudfront_distribution.blog.*.domain_name, tolist(["none"])), 0)}"
 }
 
 output "blog_url" {
