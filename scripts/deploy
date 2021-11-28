@@ -1,0 +1,324 @@
+#!/usr/bin/env bash
+# vi: set ft=bash:
+DEFAULT_ENVIRONMENT_FILE=$PWD/.env
+DEFAULT_PLATFORM=aws
+DEFAULT_TEMP_DIRECTORY=/tmp
+DEFAULT_TEST_MODE=false
+DEFAULT_DRY_RUN=false
+DEFAULT_NO_COLOR=false
+DEFAULT_VENDORED_THEME_DIR=theme
+ENVIRONMENT_FILE="${ENVIRONMENT_FILE:-$DEFAULT_ENVIRONMENT_FILE}"
+PLATFORM="${PLATFORM:-$DEFAULT_PLATFORM}"
+TEST_MODE="${TEST_MODE:-$DEFAULT_TEST_MODE}"
+VENDORED_THEME_DIR="${VENDORED_THEME_DIR:-$DEFAULT_VENDORED_THEME_DIR}"
+NO_COLOR="${NO_COLOR:-$DEFAULT_NO_COLOR}"
+DRY_RUN="${DRY_RUN:-$DEFAULT_DRY_RUN}"
+STAGING_DIRECTORY="$(mktemp -d "${TMPDIR:-$DEFAULT_TEMP_DIRECTORY}/bloggen-$(date +%s)-XXXXXXXX")"
+SCRIPT_DIRECTORY=$(dirname "$0")
+BLOG_GEN_DIRECTORY="${SCRIPT_DIRECTORY}/.."
+ENVIRONMENT_FILE_IN_STAGING="${STAGING_DIRECTORY}/$(basename "$ENVIRONMENT_FILE")"
+EXAMPLE_ENVIRONMENT_FILE_IN_STAGING="${STAGING_DIRECTORY}/.env.example"
+REPO_NAME="https-hugo-bloggen"
+
+fail() {
+  log "$1" "error"
+  exit 1
+}
+
+log() {
+  mode="${2:-INFO}"
+  _is_tty() {
+    test -t 1
+  }
+  mode_text=$(echo "$mode" | tr '[:lower:]' '[:upper:]')
+  if _is_tty && grep -Eiq "^false$" <<< "$NO_COLOR"
+  then
+    >&2 echo -ne "$(tput bold)[$mode_text]$(tput sgr0) \
+$(tput bold)$(tput setaf 75)[${FUNCNAME[1]}]$(tput sgr0): $1\n"
+  else
+    >&2 echo "[$mode_text] [${FUNCNAME[1]}]: $1"
+  fi
+}
+
+if ! test -f "$ENVIRONMENT_FILE"
+then
+  >&2 echo "FATAL: Environment file not found at $ENVIRONMENT_FILE. Maybe decrypt it first?"
+  exit 1
+fi
+log "Loading environment"
+while read -r kv
+do
+  export "$kv"
+done < <(egrep -Ev '^#' "$ENVIRONMENT_FILE" | xargs -0)
+
+usage() {
+  cat <<-USAGE
+[ENV_VARS] $(basename "$0") [OPTIONS]
+Deploys a blog into a cloud provider
+
+OPTIONS
+
+  -h, --help        Shows this help message
+  -t, --test        Serves the blog locally for testing before deploying on port 8080
+  -k, --keep        Keep the staging area; useful for debugging errors.
+
+ENVIRONMENT VARIABLES
+
+  ENVIRONMENT_FILE      The path to the dotenv to use for deployment.
+                        (Default: $DEFAULT_ENVIRONMENT_FILE)
+
+  TEST_MODE             Same as --test.
+
+  PLATFORM              A blog-gen supported cloud provider implementation into which
+                        the blog will be deployed.
+                        (Default: $DEFAULT_PLATFORM)
+
+  VENDORED_THEME_DIR    The path to a bundled theme. Must be separate from
+                        your top-level content.
+                        (Default: $DEFAULT_VENDORED_THEME_DIR)
+
+  NO_COLOR              Disable colored log output.
+                        (Default: $DEFAULT_NO_COLOR)
+
+  DRY_RUN               Show items to be deployed instead of actually deploying
+                        (Default: $DEFAULT_DRY_RUN)
+USAGE
+}
+
+if grep -Eiq -- '-h|--help' <<< "$@"
+then
+  usage
+  exit 0
+fi
+
+get_blog_version() {
+  version=$(git rev-parse HEAD | head -c 8)
+  log "✅ $HUGO_THEME_REPO_URL version $version"
+  printf "%s" "$version" > "$STAGING_DIRECTORY/.blog_version"
+}
+
+blog_version() {
+  cat "$STAGING_DIRECTORY/.blog_version"
+}
+
+stage_blog() {
+  log "Staging blog into $STAGING_DIRECTORY"
+  find "$PWD" -maxdepth 1 -not -name "$SCRIPT_DIRECTORY" \
+    -not -name ".git" \
+    -not -name ".github" \
+    -exec cp -r {} "$STAGING_DIRECTORY/" \;
+  
+  log "Staging blog-gen into $STAGING_DIRECTORY"
+  cp -Lr "$BLOG_GEN_DIRECTORY" "$STAGING_DIRECTORY/"
+}
+
+is_running_inside_of_bloggen() {
+  ! grep -Eiq  -- "$REPO_NAME" < <(git remote -v)
+}
+
+enter_staging_area() {
+  pushd "$STAGING_DIRECTORY" &>/dev/null
+}
+
+leave_staging_area() {
+  _remove_docker_compose_networks() {
+    docker-compose down
+  }
+
+  _remove_docker_compose_networks
+  popd "$STAGING_DIRECTORY" &>/dev/null
+}
+
+render_example_env() {
+  log "Parsing example environment file"
+  docker-compose run --rm gomplate \
+    --file "$(basename "${EXAMPLE_ENVIRONMENT_FILE_IN_STAGING}").tmpl" \
+    --out "$(basename "${EXAMPLE_ENVIRONMENT_FILE_IN_STAGING}")"
+  if ! test -f "$EXAMPLE_ENVIRONMENT_FILE_IN_STAGING"
+  then
+    fail "Failed to render example environment file"
+  fi
+}
+
+verify_env_or_fail() {
+  required_keys=$(cut -f1 -d '=' "$EXAMPLE_ENVIRONMENT_FILE_IN_STAGING" | \
+    grep "change me" |
+    grep -Ev '^#' |
+    sort)
+  provided_keys=$(cut -f1 -d '=' "$ENVIRONMENT_FILE_IN_STAGING" | grep -Ev '^#' | sort)
+  missing=$(diff <(echo "$required_keys") <(echo "$provided_keys") | \
+    grep -E '<' |
+    sed 's/^< //' |
+    tr '\n' ' ' |
+    sed 's/^ $//')
+  if ! test -z "$missing"
+  then
+    fail "Please define these in $ENVIRONMENT_FILE: [$missing]"
+  fi
+}
+
+test_mode_enabled() {
+  test -f "${STAGING_DIRECTORY}/.test_mode_enabled"
+}
+
+keep_staging_area() {
+  test -f "${STAGING_DIRECTORY}/.keep_staging_area"
+}
+
+enable_test_mode_if_desired() {
+  if grep -Eiq '^true$' <<< "$TEST_MODE" || grep -Eiq -- "^-t|--test" <<< "$1"
+  then
+    log "🚧 Test mode enabled. No deployment will occur."
+    touch "${STAGING_DIRECTORY}/.test_mode_enabled"
+  fi
+}
+
+keep_staging_area_if_desired() {
+  if grep -Eiq -- "^-k|--keep" <<< "$1"
+  then
+    log "⚠️  Keeping the staging area; run this to delete: rm $STAGING_DIRECTORY" warning
+    touch "${STAGING_DIRECTORY}/.keep_staging_area"
+  fi
+}
+
+remove_staging_area() {
+  trap - INT HUP EXIT
+
+  _remove_docker_compose_networks() {
+    docker-compose down
+  }
+
+  _remove_docker_compose_networks
+  if test_mode_enabled || keep_staging_area
+  then
+    log "🚧 Test mode is enabled; staging area will not be deleted."
+    return 0
+  fi
+  log "Removing staging area"
+  rm -rf "$STAGING_DIRECTORY"
+}
+
+download_and_merge_theme() {
+  theme_name="$(basename "$HUGO_THEME_REPO_URL")"
+  theme_branch_or_ref="${HUGO_THEME_REPO_REF:-main}"
+  if ! test -d "$VENDORED_THEME_DIR"
+  then
+    log "Downloading [$theme_name] from [$HUGO_THEME_REPO_URL:$theme_branch_or_ref]"
+    git clone --branch "$theme_branch_or_ref" "$HUGO_THEME_REPO_URL" themes/default
+  else
+    log "Using vendored theme inside of [$VENDORED_THEME_DIR]"
+    mkdir -p themes/default
+    mv $VENDORED_THEME_DIR/* themes/default
+  fi
+}
+
+render_blog() {
+  _generate_hugo_config() {
+    docker-compose run --rm gomplate --file "./config.toml.tmpl" --out "./config.toml"
+  }
+
+  _create_static_assets() {
+    if test_mode_enabled
+    then
+      docker-compose run --rm hugo -D
+    else
+      docker-compose run --rm hugo
+    fi
+  }
+
+  _generate_hugo_config && _create_static_assets
+  test -d "$STAGING_DIRECTORY/public"
+}
+
+serve_blog_if_in_test_mode() {
+  if ! test_mode_enabled
+  then
+    log "Blog will not be served since we are not in test mode"
+    return 1
+  fi
+
+  docker-compose run --rm --service-ports -d nginx
+  attempts=0
+  until nc -z localhost 8080 || test "$attempts" -eq 5
+  do
+    log "Blog is not up yet on localhost at port 8080; trying again in one second" "warning"
+    sleep 1
+    attempts=$((attempts+1))
+  done
+  test "$attempts" -eq 5 && fail "Unable to serve blog on localhost at port 8080"
+  log "Blog is running on port 8080; CTRL-C to exit."
+
+  trap 'log "Stopping blog and shutting down" && \
+    docker rm -f nginx && \
+    remove_staging_area && exit 0' INT HUP
+  read 
+}
+
+dry_run_enabled() {
+  grep -Eiq -- "^true$" <<< "$DRY_RUN"
+}
+
+deploy_blog() {
+  platform_dir="./infrastructure/$PLATFORM"
+  terraform_service="terraform-$PLATFORM"
+  _confirm_platform_supported() {
+    test -d "$platform_dir"
+  }
+
+  _render_terraform_vars() {
+    docker-compose run -e VERSION=$(blog_version) --rm gomplate \
+      --file "${platform_dir}/terraform.tfvars.tmpl" \
+      --out "${platform_dir}/terraform.tfvars"
+    test -f "${platform_dir}/terraform.tfvars"
+  }
+
+  _initialize_terraform() {
+    while read -r kv
+    do
+      export "$kv"
+    done < <($platform_dir/authenticate.sh) || fail "[$PLATFORM] Unable to authenticate"
+    docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" init
+  }
+
+  _deploy() {
+    while read -r kv
+    do
+      export "$kv"
+    done < <($platform_dir/authenticate.sh) || fail "[$PLATFORM] Unable to authenticate"
+    if dry_run_enabled
+    then
+      log "[$PLATFORM] Displaying the Terraform plan"
+      docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" plan
+    else
+      log "[$PLATFORM] Deploying blog into platform"
+      docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" apply
+    fi
+  }
+
+  _confirm_platform_supported || fail "[$PLATFORM] Platform not supported by blog-gen"
+  _render_terraform_vars || fail "[$PLATFORM] Failed to render Terraform vars for this platform"
+  _initialize_terraform || fail "[$PLATFORM] Failed to init Terraform"
+  _deploy
+}
+
+
+is_running_inside_of_bloggen || fail "You can't run this from bloggen \
+itself. Run this from the blog that you're deploying from."
+
+get_blog_version || fail "Failed to get blog version"
+
+stage_blog || fail "Failed to stage blog."
+
+trap 'leave_staging_area' INT EXIT HUP
+enable_test_mode_if_desired "$1"
+keep_staging_area_if_desired "$1"
+enter_staging_area
+
+render_example_env
+verify_env_or_fail
+download_and_merge_theme || fail "Failed to download theme."
+render_blog || fail "Failed to render blog"
+serve_blog_if_in_test_mode && remove_staging_area && return 0
+deploy_blog
+
+remove_staging_area

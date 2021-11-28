@@ -1,71 +1,61 @@
 version: "2.4"
 services:
-  travis-ci:
-    image: skandyla/travis-cli
-    volumes:
-      - "$HOST_PWD:/work"
-    working_dir: /work
-    environment:
-      - TRAVIS_GITHUB_TOKEN
   aws:
     image: amazon/aws-cli:2.2.9
     env_file: .env
     environment:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
       - AWS_REGION
     volumes:
-      - "${HOST_PWD}:/work"
+      - "$PWD:/work"
 
   gomplate:
     image: hairyhenderson/gomplate:v3.10.0-alpine
+    env_file: .env
+    volumes:
+      - "$PWD:/work"
+      - "$PWD/.env:/.env"
+    working_dir: /work
     environment:
       - GOMPLATE_SUPPRESS_EMPTY=true
       - COMMIT_SHA
 
-  hugo:
-    build:
-      dockerfile: hugo.dockerfile
-      args:
-        - HUGO_VERSION=0.66.0
-      context: .
-    tty: true
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
     volumes:
-      - "${HOST_PWD}/site:/site"
-      - "${HOST_PWD}/content:/site/content"
-      - "${HOST_PWD}/layouts/:/site/layouts"
-      - "${HOST_PWD}/themes/:/site/themes"
-      - "${HOST_PWD}/static/:/site/static"
-      - "${HOST_PWD}/config.toml:/site/config.toml"
-    working_dir: /site
+      - "$PWD/public:/usr/share/nginx/html"
+    ports:
+      - 8080:80
+
+  hugo:
+    image: klakegg/hugo:0.89.4-alpine
+    env_file: .env
+    volumes:
+      - "$PWD:/work"
+    working_dir: /work
 
   terraform:
     image: carlosnunez/terraform:1.0.11
-    volumes:
-      - "${HOST_PWD}/infrastructure/${INFRASTRUCTURE_PROVIDER}:/work"
     working_dir: /work
     env_file: .env
+    environment:
+      - TF_INPUT=0
+      - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
+      - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
+
+  terraform-aws:
+    extends: terraform
+    volumes:
+      - "$PWD/infrastructure/aws:/work"
     environment:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_REGION
       - AWS_SESSION_TOKEN
-      - TF_INPUT=0
-      - TF_CLI_ARGS_init=-backend=true -backend-config=backend.tfvars -reconfigure
-      - TF_CLI_ARGS_plan=-lock=false -auto-approve=true
-      - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
-      - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
-
-  obtain-aws-session-credentials:
-    extends: aws
-    command:
-      - sts
-      - assume-role
-      - --role-arn
-      - "$AWS_ROLE_ARN"
-      - --external-id
-      - "$AWS_STS_EXTERNAL_ID"
-      - --role-session-name
-      - "$AWS_SESSION_NAME"
-      - --output
-      - json
+      - |-
+        TF_CLI_ARGS_init=-backend=true -backend-config="bucket=$TERRAFORM_STATE_S3_BUCKET_NAME"
+          -backend-config="key=$TERRAFORM_STATE_S3_BUCKET_KEY"
+          -backend-config="region=$AWS_REGION"
