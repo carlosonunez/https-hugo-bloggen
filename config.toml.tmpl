@@ -1,12 +1,30 @@
+{{- if file.Exists ".test_mode_enabled" }}
+baseurl = "http://localhost:8080"
+{{- else }}
 baseurl = "{{ .Env.HUGO_BASE_URL }}"
+{{- end }}
 title = "{{ .Env.HUGO_TITLE }}"
-author = "{{ file.Read "AUTHOR" | strings.ReplaceAll "\n" "" }}"
 paginate = "{{ .Env.HUGO_PAGINATE }}"
-theme = "{{ path.Base (.Env.HUGO_THEME_REPO_URL)  }}"
-{{ if (file.Exists "global_keywords") -}}
-keywords = "{{ file.Read "global_keywords" | strings.ReplaceAll "\n" "," }}"
+theme = "default"
+enableInlineShortcodes = true
+enableRobotsTXT = true
+canonifyURLs = true
+{{- if ne (getenv "HUGO_GOOGLEANALYTICS") "" }}
+googleAnalytics = "{{ .Env.HUGO_GOOGLEANALYTICS }}"
 {{- end }}
 [params]
-  description = "{{ .Env.HUGO_DESCRIPTION }}"
   dateFormatUse = "2018-01-01"
-  twitter = "{{ .Env.TWITTER_HANDLE }}"
+  description = "{{ .Env.HUGO_DESCRIPTION }}"
+{{- range slice "keywords" "author" "googlesearchverificationcode"}}
+{{- $env_var_key := join (slice "HUGO_" (. | strings.ToUpper)) "" }}
+{{- $env_var_val := getenv $env_var_key }}
+{{- if ne $env_var_val "" }}
+  {{ . }} = "{{ $env_var_val }}"
+{{- end }}
+{{- end }}
+[taxonomies]
+  keywords = "keywords"
+{{- if (file.Exists "sitemap.toml") }}
+[menu]
+{{ tmpl.Inline (file.Read "sitemap.toml") | strings.Indent 2 }}
+{{- end }}
