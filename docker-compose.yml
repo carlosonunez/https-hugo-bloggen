@@ -10,6 +10,7 @@ services:
       - AWS_REGION
     volumes:
       - "$PWD:/work"
+    working_dir: /work
 
   gomplate:
     image: hairyhenderson/gomplate:v3.10.0-alpine
