@@ -15,8 +15,6 @@ then
   >&2 echo "ERROR: Failed to get creds, output: $output"
   exit 1
 fi
->&2 echo "DEBUG: got output: $output"
-
 echo "$output" | \
   docker run --rm -i "$JQ_DOCKER_IMAGE" -r '"AWS_ACCESS_KEY_ID=" + .Credentials.AccessKeyId + " " +
 "AWS_SECRET_ACCESS_KEY=" + .Credentials.SecretAccessKey + " " +
