@@ -9,6 +9,9 @@ DEFAULT_NO_COLOR=false
 DEFAULT_VENDORED_THEME_DIR=theme
 ENVIRONMENT_FILE="${ENVIRONMENT_FILE:-$DEFAULT_ENVIRONMENT_FILE}"
 PLATFORM="${PLATFORM:-$DEFAULT_PLATFORM}"
+PLATFORM_DIR="./infrastructure/${PLATFORM}"
+AUTHENTICATE_SCRIPT="${PLATFORM_DIR}/authenticate.sh"
+COPY_SCRIPT="${PLATFORM_DIR}/copy.sh"
 TEST_MODE="${TEST_MODE:-$DEFAULT_TEST_MODE}"
 VENDORED_THEME_DIR="${VENDORED_THEME_DIR:-$DEFAULT_VENDORED_THEME_DIR}"
 NO_COLOR="${NO_COLOR:-$DEFAULT_NO_COLOR}"
@@ -31,12 +34,19 @@ log() {
     test -t 1
   }
   mode_text=$(echo "$mode" | tr '[:lower:]' '[:upper:]')
+  function_name="${FUNCNAME[1]}"
+  if grep -Eq '^_' <<< "$function_name" ||
+    test "$function_name" == "log" ||
+    test "$function_name" == "fail"
+  then
+    function_name="${FUNCNAME[2]}"
+  fi
   if _is_tty && grep -Eiq "^false$" <<< "$NO_COLOR"
   then
     >&2 echo -ne "$(tput bold)[$mode_text]$(tput sgr0) \
-$(tput bold)$(tput setaf 75)[${FUNCNAME[1]}]$(tput sgr0): $1\n"
+$(tput bold)$(tput setaf 75)[$function_name]$(tput sgr0): $1\n"
   else
-    >&2 echo "[$mode_text] [${FUNCNAME[1]}]: $1"
+    >&2 echo "[$mode_text] [$function_name]: $1"
   fi
 }
 
@@ -227,7 +237,8 @@ render_blog() {
   }
 
   _generate_hugo_config && _create_static_assets
-  test -d "$STAGING_DIRECTORY/public"
+  test -d "$STAGING_DIRECTORY/public" || \
+    fail "Static assets not found at $STAGING_DIRECTORY/public"
 }
 
 serve_blog_if_in_test_mode() {
@@ -258,25 +269,24 @@ dry_run_enabled() {
   grep -Eiq -- "^true$" <<< "$DRY_RUN"
 }
 
-deploy_blog() {
-  platform_dir="./infrastructure/$PLATFORM"
+deploy_blog_infrastructure() {
   terraform_service="terraform-$PLATFORM"
   _confirm_platform_supported() {
-    test -d "$platform_dir"
+    test -d "$PLATFORM_DIR"
   }
 
   _render_terraform_vars() {
     docker-compose run -e VERSION=$(blog_version) --rm gomplate \
-      --file "${platform_dir}/terraform.tfvars.tmpl" \
-      --out "${platform_dir}/terraform.tfvars"
-    test -f "${platform_dir}/terraform.tfvars"
+      --file "${PLATFORM_DIR}/terraform.tfvars.tmpl" \
+      --out "${PLATFORM_DIR}/terraform.tfvars"
+    test -f "${PLATFORM_DIR}/terraform.tfvars"
   }
 
   _initialize_terraform() {
     while read -r kv
     do
       export "$kv"
-    done < <($platform_dir/authenticate.sh) || fail "[$PLATFORM] Unable to authenticate"
+    done < <($AUTHENTICATE_SCRIPT) || fail "[$PLATFORM] Unable to authenticate"
     docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" init
   }
 
@@ -284,7 +294,7 @@ deploy_blog() {
     while read -r kv
     do
       export "$kv"
-    done < <($platform_dir/authenticate.sh) || fail "[$PLATFORM] Unable to authenticate"
+    done < <($AUTHENTICATE_SCRIPT) || fail "[$PLATFORM] Unable to authenticate"
     if dry_run_enabled
     then
       log "[$PLATFORM] Displaying the Terraform plan"
@@ -301,24 +311,61 @@ deploy_blog() {
   _deploy
 }
 
+confirm_platform_valid_or_fail() {
+  _platform_present() {
+    log "Confirming platform present: $PLATFORM"
+    test -d "$PLATFORM_DIR"
+  }
+
+  _platform_scripts_present_or_fail() {
+    for script in "$AUTHENTICATE_SCRIPT" "$COPY_SCRIPT"
+    do test -f "$script" || fail "[$PLATFORM] Script missing: $script"
+    done
+  }
+
+  _platform_present || fail "Platform not found: $PLATFORM"
+  _platform_scripts_present_or_fail
+}
+
+copy_blog_content_into_infrastructure() {
+  static_dir="${STAGING_DIRECTORY}/public"
+  _version_index_and_error_pages() {
+    log "Versioning index and error pages to version $(blog_version)"
+    for page in index "404"
+    do
+      mv -v "${static_dir}/${page}.html" "${static_dir}/${page}-$(blog_version).html"
+    done
+  }
+
+  _copy_into_platform() {
+    $COPY_SCRIPT "./public"
+  }
+
+  log "[$PLATFORM] Copying static assets into the platform"
+  _version_index_and_error_pages && _copy_into_platform
+}
+
 
 is_running_inside_of_bloggen || fail "You can't run this from bloggen \
 itself. Run this from the blog that you're deploying from."
+
+enable_test_mode_if_desired "$1"
+keep_staging_area_if_desired "$1"
 
 get_blog_version || fail "Failed to get blog version"
 
 stage_blog || fail "Failed to stage blog."
 
 trap 'leave_staging_area' INT EXIT HUP
-enable_test_mode_if_desired "$1"
-keep_staging_area_if_desired "$1"
 enter_staging_area
 
+confirm_platform_valid_or_fail
 render_example_env
 verify_env_or_fail
 download_and_merge_theme || fail "Failed to download theme."
 render_blog || fail "Failed to render blog"
 serve_blog_if_in_test_mode && remove_staging_area && return 0
-deploy_blog
+deploy_blog_infrastructure
+copy_blog_content_into_infrastructure
 
 remove_staging_area

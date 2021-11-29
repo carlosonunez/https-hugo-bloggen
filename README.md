@@ -35,9 +35,12 @@ Here's how to create a new platform:
 2. Write a script called `authenticate.sh` that exposes environment variables
    used for authenticating Terraform to your platform's requisite Terraform
    provider.
-3. Write a Docker Compose routine inside of `docker-compose.yml` for your new
+3. Write a script called `copy.sh` that copies the contents of the blog into
+   your provider's storage platform. The path will be passed in as a single
+   argument.
+4. Write a Docker Compose routine inside of `docker-compose.yml` for your new
    provider. Look at `terraform-aws` for an example.
-4. Write a [gomplate](https://github.com/hairyhenderson/gomplate) template
+5. Write a [gomplate](https://github.com/hairyhenderson/gomplate) template
    called `terraform.tfvars.tmpl` inside of your platform folder.
 
 ## How does this differ from `v1`?
