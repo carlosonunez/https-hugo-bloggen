@@ -272,7 +272,8 @@ dry_run_enabled() {
 deploy_blog_infrastructure() {
   terraform_service="terraform-$PLATFORM"
   _confirm_platform_supported() {
-    test -d "$PLATFORM_DIR"
+    test -d "$PLATFORM_DIR" &&
+      test -f "${PLATFORM_DIR}/backend.tf"
   }
 
   _render_terraform_vars() {
