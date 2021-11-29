@@ -1,17 +1,5 @@
 version: "2.4"
 services:
-  aws:
-    image: amazon/aws-cli:2.2.9
-    env_file: .env
-    environment:
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-      - AWS_SESSION_TOKEN
-      - AWS_REGION
-    volumes:
-      - "$PWD:/work"
-    working_dir: /work
-
   gomplate:
     image: hairyhenderson/gomplate:v3.10.0-alpine
     env_file: .env
