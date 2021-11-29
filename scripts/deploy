@@ -287,7 +287,7 @@ deploy_blog_infrastructure() {
     while read -r kv
     do
       export "$kv"
-    done < <($AUTHENTICATE_SCRIPT) || fail "[$PLATFORM] Unable to authenticate"
+    done < <($AUTHENTICATE_SCRIPT "$ENVIRONMENT_FILE") || fail "[$PLATFORM] Unable to authenticate"
     docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" init
   }
 
@@ -295,7 +295,7 @@ deploy_blog_infrastructure() {
     while read -r kv
     do
       export "$kv"
-    done < <($AUTHENTICATE_SCRIPT) || fail "[$PLATFORM] Unable to authenticate"
+    done < <($AUTHENTICATE_SCRIPT "$ENVIRONMENT_FILE") || fail "[$PLATFORM] Unable to authenticate"
     if dry_run_enabled
     then
       log "[$PLATFORM] Displaying the Terraform plan"
