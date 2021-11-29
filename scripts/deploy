@@ -205,7 +205,11 @@ remove_staging_area() {
     return 0
   fi
   log "Removing staging area"
-  rm -rf "$STAGING_DIRECTORY"
+  if ! rm -rf "$STAGING_DIRECTORY"
+  then
+    log "Unable to remove staging dir [$STAGING_DIRECTORY]; do so manually" "warning"
+    return 0
+  fi
 }
 
 download_and_merge_theme() {
