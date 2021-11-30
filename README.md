@@ -43,6 +43,15 @@ Here's how to create a new platform:
 5. Write a [gomplate](https://github.com/hairyhenderson/gomplate) template
    called `terraform.tfvars.tmpl` inside of your platform folder.
 
+### Infrastructure Platform Hacks
+
+- **Don't want to use Terraform?** Create a script called `deploy.sh` at the
+  top-level of your platform provider.
+- **Want to handle rendering Hugo assets yourself?** Write
+  `.defer_hugo_rendering` to your provider's directory to disable rendering the
+  Hugo blog within the deploy script. Use this if your provider is going to
+  render or serve the blog itself (like the `docker` platform provider)
+
 ## How does this differ from `v1`?
 
 `v1` of `hugo-bloggen` assumed that environment variables were decoupled

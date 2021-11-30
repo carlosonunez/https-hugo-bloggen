@@ -9,7 +9,6 @@ services:
     working_dir: /work
     environment:
       - GOMPLATE_SUPPRESS_EMPTY=true
-      - COMMIT_SHA
 
   nginx:
     image: nginx:alpine
@@ -34,6 +33,13 @@ services:
       - TF_INPUT=0
       - TF_CLI_ARGS_apply=-lock=false -auto-approve=true
       - TF_CLI_ARGS_destroy=-lock=false -auto-approve=true
+
+  terraform-docker:
+    extends: terraform
+    volumes:
+      - "$PWD/infrastructure/docker:/work"
+      - "$PWD/public:/site"
+      - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock"
 
   terraform-aws:
     extends: terraform

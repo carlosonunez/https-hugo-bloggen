@@ -10,7 +10,6 @@ DEFAULT_VENDORED_THEME_DIR=theme
 ENVIRONMENT_FILE="${ENVIRONMENT_FILE:-$DEFAULT_ENVIRONMENT_FILE}"
 PLATFORM="${PLATFORM:-$DEFAULT_PLATFORM}"
 PLATFORM_DIR="./infrastructure/${PLATFORM}"
-AUTHENTICATE_SCRIPT="${PLATFORM_DIR}/authenticate.sh"
 COPY_SCRIPT="${PLATFORM_DIR}/copy.sh"
 TEST_MODE="${TEST_MODE:-$DEFAULT_TEST_MODE}"
 VENDORED_THEME_DIR="${VENDORED_THEME_DIR:-$DEFAULT_VENDORED_THEME_DIR}"
@@ -22,6 +21,7 @@ BLOG_GEN_DIRECTORY="${SCRIPT_DIRECTORY}/.."
 ENVIRONMENT_FILE_IN_STAGING="${STAGING_DIRECTORY}/$(basename "$ENVIRONMENT_FILE")"
 EXAMPLE_ENVIRONMENT_FILE_IN_STAGING="${STAGING_DIRECTORY}/.env.example"
 REPO_NAME="https-hugo-bloggen"
+AUTH_DATA_PATH="${STAGING_DIRECTORY}/.platform_auth_data"
 
 fail() {
   log "$1" "error"
@@ -141,7 +141,7 @@ leave_staging_area() {
 
 render_example_env() {
   log "Parsing example environment file"
-  docker-compose run --rm gomplate \
+  docker-compose run -e PLATFORM --rm gomplate \
     --file "$(basename "${EXAMPLE_ENVIRONMENT_FILE_IN_STAGING}").tmpl" \
     --out "$(basename "${EXAMPLE_ENVIRONMENT_FILE_IN_STAGING}")"
   if ! test -f "$EXAMPLE_ENVIRONMENT_FILE_IN_STAGING"
@@ -226,23 +226,32 @@ download_and_merge_theme() {
   fi
 }
 
+hugo_rendering_deferred_by_platform() {
+  test -f "$PLATFORM_DIR/.defer_hugo_rendering"
+}
+
 render_blog() {
   _generate_hugo_config() {
     docker-compose run --rm gomplate --file "./config.toml.tmpl" --out "./config.toml"
   }
 
-  _create_static_assets() {
+  _create_static_assets_or_fail() {
+    if hugo_rendering_deferred_by_platform
+    then
+      log "[$PLATFORM] This platform has opted to defer rendering your blog." "warning"
+      return 0
+    fi
     if test_mode_enabled
     then
       docker-compose run --rm hugo -D
     else
       docker-compose run --rm hugo
     fi
+    test -d "$STAGING_DIRECTORY/public" || \
+      fail "Static assets not found at $STAGING_DIRECTORY/public"
   }
 
-  _generate_hugo_config && _create_static_assets
-  test -d "$STAGING_DIRECTORY/public" || \
-    fail "Static assets not found at $STAGING_DIRECTORY/public"
+  _generate_hugo_config && _create_static_assets_or_fail
 }
 
 serve_blog_if_in_test_mode() {
@@ -277,7 +286,7 @@ deploy_blog_infrastructure() {
   terraform_service="terraform-$PLATFORM"
   _confirm_platform_supported() {
     test -d "$PLATFORM_DIR" &&
-      test -f "${PLATFORM_DIR}/backend.tf"
+      test -f "${PLATFORM_DIR}/backend.tf" || test -f "${PLATFORM_DIR}/deploy.sh"
   }
 
   _render_terraform_vars() {
@@ -288,18 +297,12 @@ deploy_blog_infrastructure() {
   }
 
   _initialize_terraform() {
-    while read -r kv
-    do
-      export "$kv"
-    done < <($AUTHENTICATE_SCRIPT "$ENVIRONMENT_FILE") || fail "[$PLATFORM] Unable to authenticate"
+    export $(auth_data | xargs -0)
     docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" init
   }
 
   _deploy() {
-    while read -r kv
-    do
-      export "$kv"
-    done < <($AUTHENTICATE_SCRIPT "$ENVIRONMENT_FILE") || fail "[$PLATFORM] Unable to authenticate"
+    export $(auth_data | xargs -0)
     if dry_run_enabled
     then
       log "[$PLATFORM] Displaying the Terraform plan"
@@ -310,10 +313,29 @@ deploy_blog_infrastructure() {
     fi
   }
 
+  has_deploy_script() {
+    test -f "$PLATFORM_DIR/deploy.sh"
+  }
+
+  execute_deploy_script() {
+    log "[$PLATFORM] Executing custom deploy script"
+    VERSION="$(blog_version)" $PLATFORM_DIR/deploy.sh  "$1" "$ENVIRONMENT_FILE"
+  }
+
   _confirm_platform_supported || fail "[$PLATFORM] Platform not supported by blog-gen"
-  _render_terraform_vars || fail "[$PLATFORM] Failed to render Terraform vars for this platform"
-  _initialize_terraform || fail "[$PLATFORM] Failed to init Terraform"
-  _deploy
+  if has_deploy_script
+  then
+    if hugo_rendering_deferred_by_platform
+    then
+      execute_deploy_script "."
+    else
+      execute_deploy_script "./public"
+    fi
+  else
+    _render_terraform_vars || fail "[$PLATFORM] Failed to render Terraform vars for this platform"
+    _initialize_terraform || fail "[$PLATFORM] Failed to init Terraform"
+    _deploy
+  fi
 }
 
 confirm_platform_valid_or_fail() {
@@ -322,14 +344,7 @@ confirm_platform_valid_or_fail() {
     test -d "$PLATFORM_DIR"
   }
 
-  _platform_scripts_present_or_fail() {
-    for script in "$AUTHENTICATE_SCRIPT" "$COPY_SCRIPT"
-    do test -f "$script" || fail "[$PLATFORM] Script missing: $script"
-    done
-  }
-
   _platform_present || fail "Platform not found: $PLATFORM"
-  _platform_scripts_present_or_fail
 }
 
 copy_blog_content_into_infrastructure() {
@@ -350,6 +365,16 @@ copy_blog_content_into_infrastructure() {
   _version_index_and_error_pages && _copy_into_platform
 }
 
+capture_authentication_data() {
+  script="${PLATFORM_DIR}/authenticate.sh"
+  $script "$ENVIRONMENT_FILE" > "$AUTH_DATA_PATH" ||
+    fail "[$PLATFORM] Authentication failed"
+
+}
+
+auth_data() {
+  cat "$AUTH_DATA_PATH"
+}
 
 is_running_inside_of_bloggen || fail "You can't run this from bloggen \
 itself. Run this from the blog that you're deploying from."
@@ -370,6 +395,7 @@ verify_env_or_fail
 download_and_merge_theme || fail "Failed to download theme."
 render_blog || fail "Failed to render blog"
 serve_blog_if_in_test_mode && remove_staging_area && return 0
+capture_authentication_data
 deploy_blog_infrastructure
 copy_blog_content_into_infrastructure
 
