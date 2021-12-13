@@ -103,7 +103,12 @@ fi
 
 get_blog_version() {
   version=$(git rev-parse HEAD | head -c 8)
-  log "✅ $HUGO_THEME_REPO_URL version $version"
+  log "======================================================================="
+  log "=                                                                     ="
+  log "=        🚀 Deploying [$HUGO_BASE_URL] v[$version]       ="
+  log "=                  (Powered by blog-gen)                              ="
+  log "=                                                                     ="
+  log "======================================================================="
   printf "%s" "$version" > "$STAGING_DIRECTORY/.blog_version"
 }
 
@@ -358,7 +363,7 @@ copy_blog_content_into_infrastructure() {
   }
 
   _copy_into_platform() {
-    $COPY_SCRIPT "./public"
+    eval $(auth_data | xargs -0) $COPY_SCRIPT "${static_dir}"
   }
 
   log "[$PLATFORM] Copying static assets into the platform"
