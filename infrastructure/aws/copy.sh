@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 AWS_DOCKER_IMAGE="amazon/aws-cli:2.2.9"
-set -x
 docker run --rm \
   -v "$1:/work" \
   -w /work \

@@ -256,7 +256,13 @@ render_blog() {
       fail "Static assets not found at $STAGING_DIRECTORY/public"
   }
 
-  _generate_hugo_config && _create_static_assets_or_fail
+  _make_public_open() {
+    log "making all files in public completely open so CI works..."
+    docker-compose run --rm --entrypoint sh --user root hugo \
+      -c "chmod -R 777 ./public"
+  }
+
+  _generate_hugo_config && _create_static_assets_or_fail && _make_public_open
 }
 
 serve_blog_if_in_test_mode() {
