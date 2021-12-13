@@ -205,7 +205,7 @@ remove_staging_area() {
 
   _make_staging_dir_open() {
     log "Opening the staging area so that CI can delete it"
-    docker-compose run --rm --user root --entrypoint sh -c "chmod -R 777 ."
+    docker-compose run --rm --user root --entrypoint sh hugo -c "chmod -R 777 ."
   }
 
   _remove_docker_compose_networks
