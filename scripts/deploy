@@ -393,6 +393,14 @@ auth_data() {
   cat "$AUTH_DATA_PATH"
 }
 
+add_custom_config_toml() {
+  if test -f "$PWD/config.toml.tmpl"
+  then
+    log "Copying custom config.toml template into staging area."
+    cp "$PWD/config.toml.tmpl" "$STAGING_DIRECTORY/config.toml.tmpl"
+  fi
+}
+
 is_running_inside_of_bloggen || fail "You can't run this from bloggen \
 itself. Run this from the blog that you're deploying from."
 
@@ -402,6 +410,8 @@ keep_staging_area_if_desired "$1"
 get_blog_version || fail "Failed to get blog version"
 
 stage_blog || fail "Failed to stage blog."
+
+add_custom_config_toml
 
 trap 'leave_staging_area' INT EXIT HUP
 enter_staging_area
