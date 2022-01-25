@@ -62,3 +62,9 @@ designed to support more platforms.
 `v2` and above assumes that your blog is bringing its own environment and uses
 a single layer of Docker to do everything. This means that encrypting/protecting
 environment variables is now the blog's responsibility.
+
+## Defining Custom Configuration
+
+- Use `sitemap.toml` to define a menu for your site.
+- Use `properties.toml` to define additional configuration properties.
+  This could be useful for custom themes or plugins.

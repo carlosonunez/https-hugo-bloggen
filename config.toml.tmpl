@@ -28,3 +28,7 @@ googleAnalytics = "{{ .Env.HUGO_GOOGLEANALYTICS }}"
 [menu]
 {{ tmpl.Inline (file.Read "sitemap.toml") | strings.Indent 2 }}
 {{- end }}
+{{- if (file.Exists "properties.toml") }}
+{{ tmpl.Inline (file.Read "properties.toml") }}
+{{- end }}
+
