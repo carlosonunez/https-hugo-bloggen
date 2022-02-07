@@ -264,8 +264,11 @@ render_blog() {
 
   _make_public_open() {
     log "making all files in public completely open so CI works..."
-    docker-compose run --rm --entrypoint sh --user root hugo \
-      -c "chmod -R 777 ./public"
+    if ! test -z "$CI"
+    then
+      docker-compose run --rm --entrypoint sh --user root hugo \
+        -c "chmod -R 777 ./public"
+    fi
   }
 
   _generate_hugo_config && _create_static_assets_or_fail && _make_public_open
