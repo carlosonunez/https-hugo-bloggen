@@ -119,13 +119,10 @@ blog_version() {
 
 stage_blog() {
   log "Staging blog into $STAGING_DIRECTORY"
-  find "$PWD" -maxdepth 1 -not -name "$SCRIPT_DIRECTORY" \
-    -not -name ".git" \
-    -not -name ".github" \
-    -exec cp -r {} "$STAGING_DIRECTORY/" \;
+  rsync -a $PWD/. "$STAGING_DIRECTORY" --exclude .git --exclude "$BLOG_GEN_DIRECTORY"
   
   log "Staging blog-gen into $STAGING_DIRECTORY"
-  cp -Lr "$BLOG_GEN_DIRECTORY" "$STAGING_DIRECTORY/"
+  rsync -a $BLOG_GEN_DIRECTORY/. "$STAGING_DIRECTORY" --exclude .git
 }
 
 is_running_inside_of_bloggen() {
