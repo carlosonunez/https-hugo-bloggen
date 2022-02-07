@@ -48,4 +48,5 @@ variable "blog_version_commit_sha" {
 
 variable "s3_bucket_origin_id" {
   description = "The origin ID for the website-serving S3 bucket."
+  default = ""
 }
