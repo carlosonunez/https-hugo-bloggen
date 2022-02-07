@@ -237,6 +237,14 @@ download_and_merge_theme() {
   fi
 }
 
+copy_favicon() {
+  if test -f "$STAGING_DIRECTORY/favicon.ico"
+  then
+    log "Copying favicon"
+    cp "$STAGING_DIRECTORY/favicon.ico" "themes/default/static/favicon.ico"
+  fi
+}
+
 hugo_rendering_deferred_by_platform() {
   test -f "$PLATFORM_DIR/.defer_hugo_rendering"
 }
@@ -423,6 +431,7 @@ confirm_platform_valid_or_fail
 render_example_env
 verify_env_or_fail
 download_and_merge_theme || fail "Failed to download theme."
+copy_favicon
 render_blog || fail "Failed to render blog"
 serve_blog_if_in_test_mode && remove_staging_area && return 0
 capture_authentication_data
