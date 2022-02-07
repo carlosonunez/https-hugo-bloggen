@@ -19,7 +19,7 @@ services:
       - 8080:80
 
   hugo:
-    image: klakegg/hugo:0.89.4-alpine
+    image: klakegg/hugo:0.91.2-ext-alpine
     env_file: .env
     volumes:
       - "$PWD:/work"
