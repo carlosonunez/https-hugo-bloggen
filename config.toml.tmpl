@@ -12,6 +12,7 @@ canonifyURLs = true
 {{- if ne (getenv "HUGO_GOOGLEANALYTICS") "" }}
 googleAnalytics = "{{ .Env.HUGO_GOOGLEANALYTICS }}"
 {{- end }}
+
 [params]
   dateFormatUse = "2018-01-01"
   description = "{{ .Env.HUGO_DESCRIPTION }}"
@@ -22,6 +23,9 @@ googleAnalytics = "{{ .Env.HUGO_GOOGLEANALYTICS }}"
   {{ . }} = "{{ $env_var_val }}"
 {{- end }}
 {{- end }}
+{{- if (file.Exists "params.toml") }}
+{{ tmpl.Inline (file.Read "params.toml") }}
+{{- end }}
 [taxonomies]
   keywords = "keywords"
 {{- if (file.Exists "sitemap.toml") }}
@@ -31,4 +35,3 @@ googleAnalytics = "{{ .Env.HUGO_GOOGLEANALYTICS }}"
 {{- if (file.Exists "properties.toml") }}
 {{ tmpl.Inline (file.Read "properties.toml") }}
 {{- end }}
-
