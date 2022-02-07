@@ -71,6 +71,7 @@ OPTIONS
   -h, --help        Shows this help message
   -t, --test        Serves the blog locally for testing before deploying on port 8080
   -k, --keep        Keep the staging area; useful for debugging errors.
+      --destroy     Destroys an instance of a blog. IRREVERSIBLE; USE WITH CAUTION!
 
 ENVIRONMENT VARIABLES
 
@@ -194,6 +195,32 @@ keep_staging_area_if_desired() {
     log "⚠️  Keeping the staging area; run this to delete: rm $STAGING_DIRECTORY" warning
     touch "${STAGING_DIRECTORY}/.keep_staging_area"
   fi
+}
+
+want_to_destroy() {
+  # TODO: Add a confirmation prompt here.
+  grep -Eiq -- "^--destroy" <<< "$1"
+}
+
+destroy_blog() {
+  _render_terraform_vars() {
+    export $(auth_data | xargs -0)
+    docker-compose run -e VERSION=$(blog_version) --rm "gomplate-$PLATFORM" \
+      --file "${PLATFORM_DIR}/terraform.tfvars.tmpl" \
+      --out "${PLATFORM_DIR}/terraform.tfvars"
+    test -f "${PLATFORM_DIR}/terraform.tfvars"
+  }
+
+  _destroy() {
+    export $(auth_data | xargs -0)
+    terraform_service="terraform-$PLATFORM"
+    docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" init -reconfigure
+    docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" destroy
+  }
+
+  export $(auth_data | xargs -0)
+  log "Destroying blog $HUGO_BASE_URL"
+  _render_terraform_vars && _destroy
 }
 
 remove_staging_area() {
@@ -431,10 +458,19 @@ enter_staging_area
 confirm_platform_valid_or_fail
 render_example_env
 verify_env_or_fail
+if want_to_destroy "$1"
+then
+  capture_authentication_data
+  destroy_blog
+  remove_staging_area
+  exit 0
+fi
+
 download_and_merge_theme || fail "Failed to download theme."
 copy_favicon
 render_blog || fail "Failed to render blog"
 serve_blog_if_in_test_mode && remove_staging_area && return 0
+
 capture_authentication_data
 deploy_blog_infrastructure
 copy_blog_content_into_infrastructure
