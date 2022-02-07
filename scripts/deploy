@@ -318,7 +318,8 @@ deploy_blog_infrastructure() {
   }
 
   _render_terraform_vars() {
-    docker-compose run -e VERSION=$(blog_version) --rm gomplate \
+    export $(auth_data | xargs -0)
+    docker-compose run -e VERSION=$(blog_version) --rm "gomplate-$PLATFORM" \
       --file "${PLATFORM_DIR}/terraform.tfvars.tmpl" \
       --out "${PLATFORM_DIR}/terraform.tfvars"
     test -f "${PLATFORM_DIR}/terraform.tfvars"
