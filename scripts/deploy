@@ -416,10 +416,12 @@ copy_blog_content_into_infrastructure() {
   }
 
   log "[$PLATFORM] Copying static assets into the platform"
-  _version_index_and_error_pages && _copy_into_platform
+  _version_index_and_error_pages
+  _copy_into_platform
 }
 
 capture_authentication_data() {
+  log "[$PLATFORM] Authenticating..."
   script="${PLATFORM_DIR}/authenticate.sh"
   $script "$ENVIRONMENT_FILE" > "$AUTH_DATA_PATH" ||
     fail "[$PLATFORM] Authentication failed"
