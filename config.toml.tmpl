@@ -13,6 +13,17 @@ canonifyURLs = true
 googleAnalytics = "{{ .Env.HUGO_GOOGLEANALYTICS }}"
 {{- end }}
 
+[security]
+  enableInlineShortcodes = false
+  [security.exec]
+    allow = ['^dart-sass-embedded$', '^go$', '^npx$', '^postcss$']
+    osEnv = ['(?i)^(PATH|PATHEXT|APPDATA|TMP|TEMP|TERM)$']
+  [security.funcs]
+    getenv = ['^HUGO_', 'LINKEDIN_HANDLE', 'TWITTER_HANDLE']
+  [security.http]
+    methods = ['(?i)GET|POST']
+    urls = ['.*']
+
 [params]
   dateFormatUse = "2018-01-01"
   description = "{{ .Env.HUGO_DESCRIPTION }}"
