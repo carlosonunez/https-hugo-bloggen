@@ -10,6 +10,14 @@ services:
     environment:
       - GOMPLATE_SUPPRESS_EMPTY=true
 
+  gomplate-aws:
+    extends: gomplate
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_REGION
+      - AWS_SESSION_TOKEN
+
   nginx:
     image: nginx:alpine
     container_name: nginx
@@ -19,7 +27,7 @@ services:
       - 8080:80
 
   hugo:
-    image: klakegg/hugo:0.89.4-alpine
+    image: klakegg/hugo:0.91.2-ext-alpine
     env_file: .env
     volumes:
       - "$PWD:/work"

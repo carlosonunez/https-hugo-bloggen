@@ -71,6 +71,7 @@ OPTIONS
   -h, --help        Shows this help message
   -t, --test        Serves the blog locally for testing before deploying on port 8080
   -k, --keep        Keep the staging area; useful for debugging errors.
+      --destroy     Destroys an instance of a blog. IRREVERSIBLE; USE WITH CAUTION!
 
 ENVIRONMENT VARIABLES
 
@@ -118,13 +119,10 @@ blog_version() {
 
 stage_blog() {
   log "Staging blog into $STAGING_DIRECTORY"
-  find "$PWD" -maxdepth 1 -not -name "$SCRIPT_DIRECTORY" \
-    -not -name ".git" \
-    -not -name ".github" \
-    -exec cp -r {} "$STAGING_DIRECTORY/" \;
+  rsync -a $PWD/. "$STAGING_DIRECTORY" --exclude .git --exclude "$BLOG_GEN_DIRECTORY"
   
   log "Staging blog-gen into $STAGING_DIRECTORY"
-  cp -Lr "$BLOG_GEN_DIRECTORY" "$STAGING_DIRECTORY/"
+  rsync -a $BLOG_GEN_DIRECTORY/. "$STAGING_DIRECTORY" --exclude .git
 }
 
 is_running_inside_of_bloggen() {
@@ -196,6 +194,32 @@ keep_staging_area_if_desired() {
   fi
 }
 
+want_to_destroy() {
+  # TODO: Add a confirmation prompt here.
+  grep -Eiq -- "^--destroy" <<< "$1"
+}
+
+destroy_blog() {
+  _render_terraform_vars() {
+    export $(auth_data | xargs -0)
+    docker-compose run -e VERSION=$(blog_version) --rm "gomplate-$PLATFORM" \
+      --file "${PLATFORM_DIR}/terraform.tfvars.tmpl" \
+      --out "${PLATFORM_DIR}/terraform.tfvars"
+    test -f "${PLATFORM_DIR}/terraform.tfvars"
+  }
+
+  _destroy() {
+    export $(auth_data | xargs -0)
+    terraform_service="terraform-$PLATFORM"
+    docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" init -reconfigure
+    docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" destroy
+  }
+
+  export $(auth_data | xargs -0)
+  log "Destroying blog $HUGO_BASE_URL"
+  _render_terraform_vars && _destroy
+}
+
 remove_staging_area() {
   trap - INT HUP EXIT
 
@@ -205,7 +229,7 @@ remove_staging_area() {
 
   _make_staging_dir_open() {
     log "Opening the staging area so that CI can delete it"
-    docker-compose run --rm --user root --entrypoint sh -c "chmod -R 777 ."
+    docker-compose run --rm --user root --entrypoint sh hugo -c "chmod -R 777 ."
   }
 
   _remove_docker_compose_networks
@@ -237,6 +261,14 @@ download_and_merge_theme() {
   fi
 }
 
+copy_favicon() {
+  if test -f "$STAGING_DIRECTORY/favicon.ico"
+  then
+    log "Copying favicon"
+    cp "$STAGING_DIRECTORY/favicon.ico" "themes/default/static/favicon.ico"
+  fi
+}
+
 hugo_rendering_deferred_by_platform() {
   test -f "$PLATFORM_DIR/.defer_hugo_rendering"
 }
@@ -264,8 +296,11 @@ render_blog() {
 
   _make_public_open() {
     log "making all files in public completely open so CI works..."
-    docker-compose run --rm --entrypoint sh --user root hugo \
-      -c "chmod -R 777 ./public"
+    if ! test -z "$CI"
+    then
+      docker-compose run --rm --entrypoint sh --user root hugo \
+        -c "chmod -R 777 ./public"
+    fi
   }
 
   _generate_hugo_config && _create_static_assets_or_fail && _make_public_open
@@ -307,7 +342,8 @@ deploy_blog_infrastructure() {
   }
 
   _render_terraform_vars() {
-    docker-compose run -e VERSION=$(blog_version) --rm gomplate \
+    export $(auth_data | xargs -0)
+    docker-compose run -e VERSION=$(blog_version) --rm "gomplate-$PLATFORM" \
       --file "${PLATFORM_DIR}/terraform.tfvars.tmpl" \
       --out "${PLATFORM_DIR}/terraform.tfvars"
     test -f "${PLATFORM_DIR}/terraform.tfvars"
@@ -315,7 +351,8 @@ deploy_blog_infrastructure() {
 
   _initialize_terraform() {
     export $(auth_data | xargs -0)
-    docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" init
+    docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" init \
+      -reconfigure
   }
 
   _deploy() {
@@ -379,10 +416,12 @@ copy_blog_content_into_infrastructure() {
   }
 
   log "[$PLATFORM] Copying static assets into the platform"
-  _version_index_and_error_pages && _copy_into_platform
+  _version_index_and_error_pages
+  _copy_into_platform
 }
 
 capture_authentication_data() {
+  log "[$PLATFORM] Authenticating..."
   script="${PLATFORM_DIR}/authenticate.sh"
   $script "$ENVIRONMENT_FILE" > "$AUTH_DATA_PATH" ||
     fail "[$PLATFORM] Authentication failed"
@@ -391,6 +430,14 @@ capture_authentication_data() {
 
 auth_data() {
   cat "$AUTH_DATA_PATH"
+}
+
+add_custom_config_toml() {
+  if test -f "$PWD/config.toml.tmpl"
+  then
+    log "Copying custom config.toml template into staging area."
+    cp "$PWD/config.toml.tmpl" "$STAGING_DIRECTORY/config.toml.tmpl"
+  fi
 }
 
 is_running_inside_of_bloggen || fail "You can't run this from bloggen \
@@ -403,15 +450,27 @@ get_blog_version || fail "Failed to get blog version"
 
 stage_blog || fail "Failed to stage blog."
 
+add_custom_config_toml
+
 trap 'leave_staging_area' INT EXIT HUP
 enter_staging_area
 
 confirm_platform_valid_or_fail
 render_example_env
 verify_env_or_fail
+if want_to_destroy "$1"
+then
+  capture_authentication_data
+  destroy_blog
+  remove_staging_area
+  exit 0
+fi
+
 download_and_merge_theme || fail "Failed to download theme."
+copy_favicon
 render_blog || fail "Failed to render blog"
 serve_blog_if_in_test_mode && remove_staging_area && return 0
+
 capture_authentication_data
 deploy_blog_infrastructure
 copy_blog_content_into_infrastructure
