@@ -253,7 +253,7 @@ download_and_merge_theme() {
   if ! test -d "$VENDORED_THEME_DIR"
   then
     log "Downloading [$theme_name] from [$HUGO_THEME_REPO_URL:$theme_branch_or_ref]"
-    git clone --branch "$theme_branch_or_ref" "$HUGO_THEME_REPO_URL" themes/default
+    git clone "$HUGO_THEME_REPO_URL" themes/default && git -C themes/default checkout "$theme_branch_or_ref"
   else
     log "Using vendored theme inside of [$VENDORED_THEME_DIR]"
     mkdir -p themes/default
