@@ -313,7 +313,7 @@ serve_blog_if_in_test_mode() {
     return 1
   fi
 
-  docker-compose run --rm --service-ports -d nginx
+  docker-compose up -d nginx
   attempts=0
   until nc -z localhost 8080 || test "$attempts" -eq 5
   do
@@ -325,7 +325,7 @@ serve_blog_if_in_test_mode() {
   log "Blog is running on port 8080; CTRL-C to exit."
 
   trap 'log "Stopping blog and shutting down" && \
-    docker rm -f nginx && \
+    docker-compose down && \
     remove_staging_area && exit 0' INT HUP
   read 
 }
