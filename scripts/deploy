@@ -334,6 +334,12 @@ dry_run_enabled() {
   grep -Eiq -- "^true$" <<< "$DRY_RUN"
 }
 
+get_blog_bucket_id() {
+  terraform_service="terraform-$PLATFORM"
+  docker-compose run -e PLATFORM="$PLATFORM" --rm "$terraform_service" \
+    output -raw blog_bucket_name
+}
+
 deploy_blog_infrastructure() {
   terraform_service="terraform-$PLATFORM"
   _confirm_platform_supported() {
@@ -412,12 +418,13 @@ copy_blog_content_into_infrastructure() {
   }
 
   _copy_into_platform() {
-    eval $(auth_data | xargs -0) $COPY_SCRIPT "${static_dir}"
+    eval $(auth_data | xargs -0) $COPY_SCRIPT "${static_dir}" "$bucket_id"
   }
 
+  bucket_id="$1"
   log "[$PLATFORM] Copying static assets into the platform"
   _version_index_and_error_pages
-  _copy_into_platform
+  _copy_into_platform "$bucket_id"
 }
 
 capture_authentication_data() {
@@ -452,7 +459,7 @@ stage_blog || fail "Failed to stage blog."
 
 add_custom_config_toml
 
-trap 'leave_staging_area' INT EXIT HUP
+trap 'rc=$?; leave_staging_area; exit $rc' INT EXIT HUP
 enter_staging_area
 
 confirm_platform_valid_or_fail
@@ -469,10 +476,11 @@ fi
 download_and_merge_theme || fail "Failed to download theme."
 copy_favicon
 render_blog || fail "Failed to render blog"
-serve_blog_if_in_test_mode && remove_staging_area && return 0
+serve_blog_if_in_test_mode && remove_staging_area && exit 0
 
-capture_authentication_data
-deploy_blog_infrastructure
-copy_blog_content_into_infrastructure
+{ capture_authentication_data &&
+  deploy_blog_infrastructure; } || exit 1
+bucket_id=$(get_blog_bucket_id) || exit 1
+copy_blog_content_into_infrastructure "$bucket_id"
 
 remove_staging_area
