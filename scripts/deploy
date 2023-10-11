@@ -383,6 +383,10 @@ deploy_blog_infrastructure() {
   }
 
   _confirm_platform_supported || fail "[$PLATFORM] Platform not supported by blog-gen"
+  # TODO: short-term: Force all providers to either provide a deploy script
+  # or specify that they use Terraform.
+  # TODO: long-term: Remove dependency on Terraform and let the provider
+  # bring their own deployment tool.
   if has_deploy_script
   then
     if hugo_rendering_deferred_by_platform
@@ -417,14 +421,24 @@ copy_blog_content_into_infrastructure() {
     done
   }
 
-  _copy_into_platform() {
+  # TODO: Remove this tight coupling on AWS.
+  _copy_into_platform_aws() {
     eval $(auth_data | xargs -0) $COPY_SCRIPT "${static_dir}" "$bucket_id"
   }
 
-  bucket_id="$1"
+  _copy_into_platform() {
+    eval $(auth_data | xargs -0) $COPY_SCRIPT "${static_dir}"
+  }
+
   log "[$PLATFORM] Copying static assets into the platform"
-  _version_index_and_error_pages
-  _copy_into_platform "$bucket_id"
+  # TODO: Remove this coupling on AWS.
+  if test "$PLATFORM" == 'aws'
+  then
+    bucket_id=$(get_blog_bucket_id) || return 1
+    _version_index_and_error_pages
+    _copy_into_platform_aws "$bucket_id"
+  else _copy_into_platform
+  fi
 }
 
 capture_authentication_data() {
@@ -477,10 +491,13 @@ download_and_merge_theme || fail "Failed to download theme."
 copy_favicon
 render_blog || fail "Failed to render blog"
 serve_blog_if_in_test_mode && remove_staging_area && exit 0
-
+capture_authentication_data &&
+  deploy_blog_infrastructure &&
+  copy_blog_content_into_infrastructure &&
+  remove_staging_area &&
+  exit 0
 { capture_authentication_data &&
   deploy_blog_infrastructure; } || exit 1
-bucket_id=$(get_blog_bucket_id) || exit 1
 copy_blog_content_into_infrastructure "$bucket_id"
 
 remove_staging_area
