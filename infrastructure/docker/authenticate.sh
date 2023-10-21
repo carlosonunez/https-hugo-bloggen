@@ -14,7 +14,7 @@ do
     exit 1
   fi
 done
-docker login \
+>&2 docker login \
   --username "${DOCKER_REGISTRY_USERNAME?Please provide DOCKER_REGISTRY_USERNAME}" \
   --password "${DOCKER_REGISTRY_PASSWORD?Please provide DOCKER_REGISTRY_PASSWORD}" \
   "${DOCKER_REGISTRY_URL:-docker.io}"
