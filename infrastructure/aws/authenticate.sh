@@ -2,10 +2,6 @@
 AWS_DOCKER_IMAGE="amazon/aws-cli:2.2.9"
 JQ_DOCKER_IMAGE="imega/jq:1.6"
 export ENV_FILE="${1?Please provide a dotenv for the AWS authenticator}"
-while read -r kv
-do
-  export "$kv"
-done < <(egrep -Ev '^#' "$ENV_FILE" | xargs -0)
 if ! output=$(docker run --rm --env-file "$ENV_FILE" "$AWS_DOCKER_IMAGE" sts assume-role \
   --role-arn "$AWS_ROLE_ARN" \
   --external-id "$AWS_STS_EXTERNAL_ID" \

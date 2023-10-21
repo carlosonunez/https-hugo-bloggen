@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-
-while read -r kv
-do
-  export "$kv"
-done < <(egrep -Ev '^#' "$2" | xargs -0)
-
 docker_image_name="$(basename "$HUGO_BASE_URL"):$VERSION"
 >&2 echo "INFO: Building Docker image [$docker_image_name]"
 docker build -t "$docker_image_name" \

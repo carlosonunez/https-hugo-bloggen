@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-while read -r kv
-do
-  export "$kv"
-done < <(grep -Ev '^#' "$1" | xargs -0)
-
 if ! grep -Eiq '^true$' <<< "$DOCKER_PUSH_TO_REGISTRY"
 then
   >&2 echo "Not pushing to registry; no auth required."

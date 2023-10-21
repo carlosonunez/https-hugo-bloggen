@@ -58,7 +58,12 @@ fi
 log "Loading environment"
 while read -r kv
 do
-  export "$kv"
+  key="$(cut -f1 -d '=' <<< "$kv")"
+  if test -z "${!key}"
+  then
+    >&2 echo "DEBUG: exporting $key"
+    export "$kv"
+  fi
 done < <(egrep -Ev '^#' "$ENVIRONMENT_FILE" | xargs -0)
 
 usage() {
