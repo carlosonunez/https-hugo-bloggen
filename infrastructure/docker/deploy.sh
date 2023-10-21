@@ -6,7 +6,8 @@ docker build -t "$docker_image_name" \
   -f "./infrastructure/docker/Dockerfile" "$1"
 if grep -Eiq '^true$' <<< "$DOCKER_PUSH_TO_REGISTRY"
 then
-  >&2 echo "INFO: Pushing Docker image [$docker_image_name] to ${DOCKER_REGISTRY_URL}"
-  docker tag "$docker_image_name" "${DOCKER_REGISTRY_USERNAME}/$docker_image_name"
-  docker push "${DOCKER_REGISTRY_USERNAME}/$docker_image_name"
+  remote_image_name="${DOCKER_REGISTRY_URL:-docker.io}/${DOCKER_REGISTRY_USERNAME}/$docker_image_name"
+  >&2 echo "INFO: Pushing Docker image [$remote_image_name] to ${DOCKER_REGISTRY_URL:-docker.io}"
+  docker tag "$docker_image_name" "$remote_image_name"
+  docker push "$remote_image_name"
 fi

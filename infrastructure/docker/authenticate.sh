@@ -17,4 +17,4 @@ done
 docker login \
   --username "${DOCKER_REGISTRY_USERNAME?Please provide DOCKER_REGISTRY_USERNAME}" \
   --password "${DOCKER_REGISTRY_PASSWORD?Please provide DOCKER_REGISTRY_PASSWORD}" \
-  "${DOCKER_REGISTRY_URL:-registry-1.docker.io/v2}"
+  "${DOCKER_REGISTRY_URL:-docker.io}"
