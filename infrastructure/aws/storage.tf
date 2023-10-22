@@ -6,6 +6,19 @@ resource "random_string" "bucket_prefix" {
 
 data "aws_iam_policy_document" "make_website_world_readable" {
   statement {
+    sid = "BlogGenSvcAccountCanDoAnything"
+    effect = "Allow"
+    actions = [ "s3:*" ]
+    principals {
+      type = "AWS"
+      identifiers = [ data.aws_caller_identity.self.arn ]
+    }
+    resources = [
+      "arn:aws:s3:::${random_string.bucket_prefix.result}-${local.s3_bucket_name}",
+      "arn:aws:s3:::${random_string.bucket_prefix.result}-${local.s3_bucket_name}/*"
+     ]
+  }
+  statement {
     sid = "PublicReadGetObject"
     effect = "Allow"
     actions = [ "s3:GetObject" ]
@@ -20,7 +33,11 @@ data "aws_iam_policy_document" "make_website_world_readable" {
 resource "aws_s3_bucket" "blog" {
   bucket = "${random_string.bucket_prefix.result}-${local.s3_bucket_name}"
   tags = "${local.default_tags}"
-  policy = "${data.aws_iam_policy_document.make_website_world_readable.json}"
+}
+
+resource "aws_s3_bucket_policy" "blog" {
+  bucket = aws_s3_bucket.blog.bucket
+  policy = data.aws_iam_policy_document.make_website_world_readable.json
 }
 
 resource "aws_s3_bucket_ownership_controls" "resume_bucket" {

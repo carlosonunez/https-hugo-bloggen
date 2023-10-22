@@ -3,6 +3,8 @@ data "aws_route53_zone" "found" {
   private_zone = false
 }
 
+data "aws_caller_identity" "self" {}
+
 locals {
   bucket_origin_id = "${var.s3_bucket_origin_id == "" ? replace(var.hugo_base_url, "/^.*:///", "") : var.s3_bucket_origin_id}"
   index_html_file = "index-${var.blog_version_commit_sha}.html"

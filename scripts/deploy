@@ -291,9 +291,9 @@ render_blog() {
     fi
     if test_mode_enabled
     then
-      docker-compose run --rm hugo -D
+      docker-compose run --rm hugo -D || return 1
     else
-      docker-compose run --rm hugo
+      docker-compose run --rm hugo || return 1
     fi
     test -d "$STAGING_DIRECTORY/public" || \
       fail "Static assets not found at $STAGING_DIRECTORY/public"

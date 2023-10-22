@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # This script looks horrible. I wrote it super quickly between tasks.
 # My bad!
+listify() {
+  printf -- "\n  - %s\n" "$(sed 's/,/\n  - /g' <<< "$1")"
+}
+
 DEFAULT_ENVIRONMENT_FILE=$PWD/.env
 ENVIRONMENT_FILE="${ENVIRONMENT_FILE:-$DEFAULT_ENVIRONMENT_FILE}"
 export $(egrep -Ev '^#' "$ENVIRONMENT_FILE" | xargs -0)
@@ -47,7 +51,10 @@ then
   >&2 echo "ERROR: Please provide a title."
   exit 1
 fi
-title_single=$(tr '[:upper:]' '[:lower:]' <<< "$title" | sed -E 's/[ ]/-/g')
+title_single=$(tr '[:upper:]' '[:lower:]' <<< "$title" |
+              sed -E "s/[ ,:]/-/g" |
+              sed -E "s/['\"]//g" |
+              sed -E 's/[-]{2,}/-/g')
 tags="${2:-$(read -rp "Enter a comma-separated list of tags, or press ENTER to skip: " temp; echo "$temp")}"
 categories="${3:-$(read -rp "Enter a comma-separated list of categories, or press ENTER to skip: " temp; echo "$temp")}"
 post_fp="./content"
@@ -73,8 +80,8 @@ date: $today
 draft: $draft
 EOF
 )
-test -n "$categories" && front_matter="$front_matter\ncategories: $categories"
-test -n "$tags" && front_matter="$front_matter\ntags: $tags"
+test -n "$categories" && front_matter="$front_matter\ncategories: $(listify "$categories")"
+test -n "$tags" && front_matter="$front_matter\ntags: $(listify "$tags")"
 front_matter="${front_matter}\n---"
 >&2 echo "INFO: Creating '${title_single}' at ${post_fp}"
 echo -e "$front_matter" > "$post_fp"
