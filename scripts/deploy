@@ -266,6 +266,10 @@ download_and_merge_theme() {
   fi
 }
 
+add_video_component() {
+  git submodule add https://github.com/martignoni/hugo-video.git themes/hugo-video
+}
+
 copy_favicon() {
   if test -f "$STAGING_DIRECTORY/favicon.ico"
   then
@@ -493,6 +497,7 @@ then
 fi
 
 download_and_merge_theme || fail "Failed to download theme."
+add_video_component || fail "Failed to add video component."
 copy_favicon
 render_blog || fail "Failed to render blog"
 serve_blog_if_in_test_mode && remove_staging_area && exit 0
