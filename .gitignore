@@ -25,3 +25,5 @@ config.toml
 content/*
 layouts/*
 static/*
+cscope.*
+tags

@@ -267,7 +267,7 @@ download_and_merge_theme() {
 }
 
 add_video_component() {
-  git submodule add https://github.com/martignoni/hugo-video.git themes/hugo-video
+  git clone https://github.com/martignoni/hugo-video.git themes/hugo-video
 }
 
 copy_favicon() {
